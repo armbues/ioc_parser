@@ -8,4 +8,4 @@ IOC Parser is a tool to extract indicators of compromise from security reports i
 * FORMAT can be one of ['text', 'csv', 'json']
 
 ## Requirements
-[PyPDF2](https://github.com/mstamy2/PyPDF2)
+[PyPDF2](https://github.com/mstamy2/PyPDF2) - *pip install pypdf2*
