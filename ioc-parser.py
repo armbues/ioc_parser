@@ -51,7 +51,7 @@ class IOC_Parser(object):
 		self.format = format
 
 		if format == 'csv':
-			self.csv_writer = csv.writer(sys.stdout, delimiter = ';')
+			self.csv_writer = csv.writer(sys.stdout, delimiter = '\t')
 
 	def load_patterns(self, fpath):
 		config = ConfigParser.ConfigParser()
@@ -66,36 +66,51 @@ class IOC_Parser(object):
 				self.patterns[ind_type] = ind_regex
 
 	def parse(self, fpath):
-		fname = os.path.basename(fpath)
 		f = open(fpath, 'rb')
-		pdf = PdfFileReader(f, strict = False)
+		try:
+			pdf = PdfFileReader(f, strict = False)
 
-		page_num = 0
-		for page in pdf.pages:
-			data = page.extractText()
-			page_num += 1
+			page_num = 0
+			for page in pdf.pages:
+				data = page.extractText()
+				page_num += 1
 
-			for ind_type, ind_regex in self.patterns.iteritems():
-				matches = ind_regex.findall(data)
+				for ind_type, ind_regex in self.patterns.iteritems():
+					matches = ind_regex.findall(data)
 
-				for ind_match in matches:
-					self.print_match(fpath, fname, page_num, ind_type, ind_match)
+					for ind_match in matches:
+						self.print_match(fpath, page_num, ind_type, ind_match)
+		except:
+			# TODO better error handling
+			self.print_error(fpath)
+			return
 
 		f.close()
 
-	def print_match(self, fpath, fname, page, name, match):
-		if self.format == 'csv':
-			self.csv_writer.writerow((fpath, page, name, match))
-		elif self.format == 'json':
+	def print_match(self, fpath, page, name, match):
+		match = match.encode('utf8')
+		if self.format == 'json':
 			data = {}
 			data['path'] = fpath
-			data['file'] = fname
+			data['file'] = os.path.basename(fpath)
 			data['page'] = page
 			data['type'] = name
 			data['match'] = match
 			print json.dumps(data)
 		else:
-			print "%s\t#%s\t%s\t%s" % (fname, page, name, match)
+			self.csv_writer.writerow((fpath, page, name, match))
+
+	def print_error(self, fpath):
+		if self.format == 'json':
+			data = {}
+			data['path'] = fpath
+			data['file'] = os.path.basename(fpath)
+			data['page'] = 0
+			data['type'] = 'error'
+			data['match'] = ''
+			print json.dumps(data)
+		else:
+			self.csv_writer.writerow((fpath, '0', 'error', ''))
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('PDF', action='store', help='File/directory path to PDF report(s)')
@@ -116,9 +131,9 @@ else:
 
 # Check output format
 args.FORMAT = args.FORMAT.lower()
-if not args.FORMAT in ['text', 'csv', 'json']:
+if not args.FORMAT in ['csv', 'json']:
 	print "Error: invalid output format"
-	args.FORMAT = 'text'
+	args.FORMAT = 'csv'
 
 # Initialize parser
 parser = IOC_Parser(args.FORMAT)
