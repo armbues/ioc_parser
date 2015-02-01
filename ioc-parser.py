@@ -47,8 +47,9 @@ from PyPDF2 import PdfFileReader
 class IOC_Parser(object):
 	patterns = {}
 
-	def __init__(self, format='text'):
+	def __init__(self, format='csv', dedup=False):
 		self.format = format
+		self.dedup = dedup
 
 		if format == 'csv':
 			self.csv_writer = csv.writer(sys.stdout, delimiter = '\t')
@@ -70,6 +71,9 @@ class IOC_Parser(object):
 		try:
 			pdf = PdfFileReader(f, strict = False)
 
+			if self.dedup:
+				dd = set()
+
 			page_num = 0
 			for page in pdf.pages:
 				data = page.extractText()
@@ -79,7 +83,14 @@ class IOC_Parser(object):
 					matches = ind_regex.findall(data)
 
 					for ind_match in matches:
+						if self.dedup:
+							if (ind_type, ind_match) in dd:
+								continue
+							dd.add((ind_type, ind_match))
+
 						self.print_match(fpath, page_num, ind_type, ind_match)
+		except (KeyboardInterrupt, SystemExit):
+		 	raise
 		except:
 			# TODO better error handling
 			self.print_error(fpath)
@@ -115,7 +126,8 @@ class IOC_Parser(object):
 argparser = argparse.ArgumentParser()
 argparser.add_argument('PDF', action='store', help='File/directory path to PDF report(s)')
 argparser.add_argument('-p', dest='INI', default='patterns.ini', help='Pattern file')
-argparser.add_argument('-f', dest='FORMAT', default='text', help='Output format (text/csv/json)')
+argparser.add_argument('-f', dest='FORMAT', default='text', help='Output format (csv/json)')
+argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
 args = argparser.parse_args()
 
 # Assemble list of files to parse
@@ -136,7 +148,7 @@ if not args.FORMAT in ['csv', 'json']:
 	args.FORMAT = 'csv'
 
 # Initialize parser
-parser = IOC_Parser(args.FORMAT)
+parser = IOC_Parser(args.FORMAT, args.DEDUP)
 parser.load_patterns(args.INI)
 
 # Parse files
