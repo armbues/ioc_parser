@@ -5,7 +5,7 @@ IOC Parser is a tool to extract indicators of compromise from security reports i
 **ioc-parser.py [-h] [-p INI] [-f FORMAT] PDF**
 * PDF can be a single file or a directory
 * INI can point to an alternative configuration file with regex patterns
-* FORMAT can be one of ['text', 'csv', 'json']
+* FORMAT can be one of ['csv', 'json']
 
 ## Requirements
 [PyPDF2](https://github.com/mstamy2/PyPDF2) - *pip install pypdf2*
