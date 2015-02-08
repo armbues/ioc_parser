@@ -29,7 +29,8 @@
 #			in PDF format.
 # Usage:	ioc-parser.py [-h] [-p INI] [-f FORMAT] PDF
 # Req.:		PyPDF2 (https://github.com/mstamy2/PyPDF2)
-# Author:	Armin Buescher (armin.buescher@googlemail.com)
+# Author:	Armin Buescher (@armbues)
+# Contrib.: Angelo Dell'Aera (@angelodellaera)
 #
 ###################################################################################################
 
@@ -74,9 +75,9 @@ class IOC_Parser(object):
             config.readfp(f)
 
         for ind_type in config.sections():
-	    ind_pattern = config.get(ind_type, 'pattern', None)
+            ind_pattern = config.get(ind_type, 'pattern', None)
 
-	    if ind_pattern:
+            if ind_pattern:
                 ind_regex = re.compile(ind_pattern)
                 self.patterns[ind_type] = ind_regex
 
@@ -94,6 +95,9 @@ class IOC_Parser(object):
             matches = ind_regex.findall(data)
 
             for ind_match in matches:
+                if isinstance(ind_match, tuple):
+                    ind_match = ind_match[0]
+
                 if self.is_whitelisted(ind_match, ind_type):
                     continue
 
@@ -134,7 +138,7 @@ class IOC_Parser(object):
         print("[ERROR] Invalid PDF file path")
 
     def print_match(self, fpath, page, name, match):
-        match   = match.encode('utf8')
+        match = match.encode('utf8')
         handler = getattr(self, 'handle_match_%s' % (self.format, ), None)
         if handler:
             handler(fpath, page, name, match)
@@ -178,7 +182,6 @@ argparser.add_argument('-p', dest='INI', default='patterns.ini', help='Pattern f
 argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json)')
 argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
 args = argparser.parse_args()
-
 
 if __name__ == "__main__":
     parser = IOC_Parser(args)
