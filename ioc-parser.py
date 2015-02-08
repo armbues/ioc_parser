@@ -41,33 +41,21 @@ import argparse
 import ConfigParser
 import StringIO
 import re
-import csv
-import json
 import traceback
 from PyPDF2 import PdfFileReader
+
+import output
 from whitelist import WhiteList
 
 class IOC_Parser(object):
-    OUTPUT_FORMATS = ('csv', 'json', )
     patterns = {}
 
     def __init__(self, args):
         self.files = args.PDF
-        self.format = self.check_format(args.FORMAT)
         self.dedup = args.DEDUP
-        self.whitelist = WhiteList()
-
         self.load_patterns(args.INI)
-
-        if self.format == 'csv':
-            self.csv_writer = csv.writer(sys.stdout, delimiter = '\t')
-
-    def check_format(self, format):
-        if not format.lower() in self.OUTPUT_FORMATS:
-            print("[WARNING] Invalid output format specified.. using CSV")
-            return 'csv'
-
-        return format.lower()
+        self.whitelist = WhiteList()
+        self.handler = output.getHandler(args.FORMAT)
 
     def load_patterns(self, fpath):
         config = ConfigParser.ConfigParser()
@@ -93,6 +81,8 @@ class IOC_Parser(object):
             try:
                 pdf = PdfFileReader(f, strict = False)
 
+                self.handler.print_header(fpath)
+
                 if self.dedup:
                     dd = set()
 
@@ -117,11 +107,12 @@ class IOC_Parser(object):
 
                                 dd.add((ind_type, ind_match))
 
-                            self.print_match(fpath, page_num, ind_type, ind_match)
+                            self.handler.print_match(fpath, page_num, ind_type, ind_match)
+                self.handler.print_footer(fpath)
             except (KeyboardInterrupt, SystemExit):
                 raise
             except Exception, e:
-                self.print_error(fpath, e)
+                self.handler.print_error(fpath, e)
 
     def parse(self):
         if os.path.isfile(args.PDF):
@@ -136,45 +127,6 @@ class IOC_Parser(object):
             return
 
         print("[ERROR] Invalid PDF file path")
-
-    def print_match(self, fpath, page, name, match):
-        match = match.encode('utf8')
-        handler = getattr(self, 'handle_match_%s' % (self.format, ), None)
-        if handler:
-            handler(fpath, page, name, match)
-
-    def handle_match_json(self, fpath, page, name, match):
-        data = {
-            'path' : fpath,
-            'file' : os.path.basename(fpath),
-            'page' : page,
-            'type' : name,
-            'match': match
-        }
-
-        print(json.dumps(data))
-
-    def handle_match_csv(self, fpath, page, name, match):
-        self.csv_writer.writerow((fpath, page, name, match))
-
-    def print_error(self, fpath, exception):
-        handler = getattr(self, 'handle_error_%s' % (self.format, ), None)
-        if handler:
-            handler(fpath, exception)
-
-    def handle_error_json(self, fpath, exception):
-        data = {
-            'path'      : fpath,
-            'file'      : os.path.basename(fpath),
-            'type'      : 'error',
-            'exception' : exception
-        }
-
-        print(json.dumps(data))
-
-    def handle_error_csv(self, fpath, exception):
-        self.csv_writer.writerow((fpath, '0', 'error', exception))
-
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('PDF', action='store', help='File/directory path to PDF report(s)')
