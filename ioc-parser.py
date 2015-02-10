@@ -131,7 +131,7 @@ class IOC_Parser(object):
 argparser = argparse.ArgumentParser()
 argparser.add_argument('PDF', action='store', help='File/directory path to PDF report(s)')
 argparser.add_argument('-p', dest='INI', default='patterns.ini', help='Pattern file')
-argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json)')
+argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json/yara)')
 argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
 args = argparser.parse_args()
 
