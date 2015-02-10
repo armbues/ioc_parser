@@ -27,7 +27,7 @@ class OutputHandler(object):
         pass
 
     def print_error(self, fpath, exception):
-        print "[ERROR] %s" % (exception)
+        print("[ERROR] %s" % (exception))
 
 class OutputHandler_csv(OutputHandler):
     def __init__(self):
@@ -74,14 +74,14 @@ class OutputHandler_yara(OutputHandler):
         string_id = "$%s%d" % (name, self.cnt[name])
         self.sids.append(string_id)
         string_value = match.replace('\\', '\\\\')
-        print "\t\t%s = \"%s\"" % (string_id, string_value)
+        print("\t\t%s = \"%s\"" % (string_id, string_value))
 
     def print_header(self, fpath):
         rule_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
 
-        print "rule %s" % (rule_name)
-        print "{"
-        print "\tstrings:"
+        print("rule %s" % (rule_name))
+        print("{")
+        print("\tstrings:")
 
         self.cnt = {}
         self.sids = []
@@ -89,6 +89,6 @@ class OutputHandler_yara(OutputHandler):
     def print_footer(self, fpath):
         cond = ' or '.join(self.sids)
 
-        print "\tcondition:"
-        print "\t\t" + cond
-        print "}"
+        print("\tcondition:")
+        print("\t\t" + cond)
+        print("}")
