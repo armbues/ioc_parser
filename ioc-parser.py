@@ -30,7 +30,7 @@
 # Usage:	ioc-parser.py [-h] [-p INI] [-f FORMAT] PDF
 # Req.:		PyPDF2 (https://github.com/mstamy2/PyPDF2)
 # Author:	Armin Buescher (@armbues)
-# Contrib.: Angelo Dell'Aera (@angelodellaera)
+# Contributors: Angelo Dell'Aera (@angelodellaera)
 #
 ###################################################################################################
 
@@ -38,11 +38,14 @@ import os
 import sys
 import fnmatch
 import argparse
-import ConfigParser
-import StringIO
 import re
 import traceback
 from PyPDF2 import PdfFileReader
+
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 import output
 from whitelist import WhiteList
@@ -63,7 +66,10 @@ class IOC_Parser(object):
             config.readfp(f)
 
         for ind_type in config.sections():
-            ind_pattern = config.get(ind_type, 'pattern', None)
+            try:
+                ind_pattern = config.get(ind_type, 'pattern')
+            except:
+                continue
 
             if ind_pattern:
                 ind_regex = re.compile(ind_pattern)
@@ -91,7 +97,7 @@ class IOC_Parser(object):
                     page_num += 1
                     data = page.extractText()
 
-                    for ind_type, ind_regex in self.patterns.iteritems():
+                    for ind_type, ind_regex in self.patterns.items():
                         matches = ind_regex.findall(data)
 
                         for ind_match in matches:
@@ -111,7 +117,7 @@ class IOC_Parser(object):
                 self.handler.print_footer(fpath)
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except Exception, e:
+            except Exception as e:
                 self.handler.print_error(fpath, e)
 
     def parse(self):
