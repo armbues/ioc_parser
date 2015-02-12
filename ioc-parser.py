@@ -39,7 +39,6 @@ import sys
 import fnmatch
 import argparse
 import re
-import traceback
 from PyPDF2 import PdfFileReader
 
 try:
@@ -62,7 +61,7 @@ class IOC_Parser(object):
 
     def load_patterns(self, fpath):
         config = ConfigParser.ConfigParser()
-        with open(args.INI) as f:
+        with open(os.path.expanduser(fpath)) as f:
             config.readfp(f)
 
         for ind_type in config.sections():
@@ -120,27 +119,65 @@ class IOC_Parser(object):
             except Exception as e:
                 self.handler.print_error(fpath, e)
 
+    def parse_stdin(self):
+
+        data = sys.stdin.read()
+        fpath = '-'
+        page_num = '-'
+
+        self.handler.print_header(fpath)
+
+        if self.dedup:
+            dd = set()
+
+        for ind_type, ind_regex in self.patterns.items():
+            matches = ind_regex.findall(data)
+
+            for ind_match in matches:
+                if isinstance(ind_match, tuple):
+                    ind_match = ind_match[0]
+
+                if self.is_whitelisted(ind_match, ind_type):
+                    continue
+
+                if self.dedup:
+                    if (ind_type, ind_match) in dd:
+                        continue
+
+                    dd.add((ind_type, ind_match))
+
+                self.handler.print_match(fpath, page_num, ind_type, ind_match)
+
+        self.handler.print_footer(fpath)
+
     def parse(self):
-        if os.path.isfile(args.PDF):
-            self.parse_file(args.PDF)
+        if not self.files:
+            self.parse_stdin()
             return
 
-        if os.path.isdir(args.PDF):
-            for walk_root, walk_dirs, walk_files in os.walk(args.PDF):
+        if os.path.isfile(self.files):
+            self.parse_file(self.files)
+            return
+
+        if os.path.isdir(self.files):
+            for walk_root, walk_dirs, walk_files in os.walk(self.files):
                 for walk_file in fnmatch.filter(walk_files, '*.pdf'):
                     self.parse_file(os.path.join(walk_root, walk_file))
 
             return
 
-        print("[ERROR] Invalid PDF file path")
+        print("[ERROR] Invalid file path")
 
-argparser = argparse.ArgumentParser()
-argparser.add_argument('PDF', action='store', help='File/directory path to PDF report(s)')
-argparser.add_argument('-p', dest='INI', default='patterns.ini', help='Pattern file')
-argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json/yara)')
-argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
-args = argparser.parse_args()
+def main():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('PDF', nargs='?', action='store', help='File/directory path to PDF report(s), blank for stdin')
+    argparser.add_argument('-p', dest='INI', default='~/.patterns.ini', help='Pattern file, or default to "~/.patterns.ini"')
+    argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json/yara)')
+    argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
+    args = argparser.parse_args()
 
-if __name__ == "__main__":
     parser = IOC_Parser(args)
     parser.parse()
+
+if __name__ == "__main__":
+    main()
