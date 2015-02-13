@@ -3,8 +3,9 @@ import glob
 import re
 
 class WhiteList(dict):
-    def __init__(self):
-        fpaths = glob.glob("whitelists/whitelist_*.ini")
+    def __init__(self, basedir):
+    	searchdir = os.path.join(basedir, "whitelists/whitelist_*.ini")
+        fpaths = glob.glob(searchdir)
         for fpath in fpaths:
             t = os.path.splitext(fpath)[0].split('_',1)[1]
             patterns = [line.strip() for line in open(fpath)]

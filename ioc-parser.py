@@ -53,16 +53,19 @@ from whitelist import WhiteList
 class IOC_Parser(object):
     patterns = {}
 
-    def __init__(self, args):
+    def __init__(self, args, basedir):
         self.files = args.PDF
         self.dedup = args.DEDUP
-        self.load_patterns(args.INI)
-        self.whitelist = WhiteList()
+
+        patterns_fpath = os.path.join(basedir, 'patterns.ini')
+        self.load_patterns(patterns_fpath)
+
+        self.whitelist = WhiteList(basedir)
         self.handler = output.getHandler(args.FORMAT)
 
     def load_patterns(self, fpath):
         config = ConfigParser.ConfigParser()
-        with open(args.INI) as f:
+        with open(fpath) as f:
             config.readfp(f)
 
         for ind_type in config.sections():
@@ -142,5 +145,5 @@ argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, h
 args = argparser.parse_args()
 
 if __name__ == "__main__":
-    parser = IOC_Parser(args)
+    parser = IOC_Parser(args, os.path.dirname(os.path.abspath(__file__)))
     parser.parse()
