@@ -7,6 +7,10 @@ IOC Parser is a tool to extract indicators of compromise from security reports i
 * *-p INI* Pattern file
 * *-f FORMAT* Output format (csv/json/yara)
 * *-d* Deduplicate matches
+* *-t* Use PDF2TXT instead of PdfFileReader
 
 ## Requirements
 [PyPDF2](https://github.com/mstamy2/PyPDF2) - *pip install pypdf2*
+
+## Use PDF2TXT instead of the PdfFileReader library
+With PdfFileReader not every URL or IP gets parsed from certain PDFs. That's why you can use the PDF2TXT library. You'll loose the page references with this option.
