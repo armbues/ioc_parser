@@ -50,6 +50,11 @@ except ImportError:
 import output
 from whitelist import WhiteList
 
+from pdfminer.pdfinterp import PDFResourceManager, process_pdf
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from cStringIO import StringIO
+
 class IOC_Parser(object):
     patterns = {}
 
@@ -85,42 +90,64 @@ class IOC_Parser(object):
 
         return False
 
+    def convert_pdf(self, pdf):
+        rsrcmgr = PDFResourceManager()
+        retstr = StringIO()
+        codec = 'utf-8'
+        laparams = LAParams()
+        device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
+
+        process_pdf(rsrcmgr, device, pdf)
+        device.close()
+        str = retstr.getvalue()
+        retstr.close()
+        return str
+
+    def parse_file_helper(self, data, fpath, page_num):
+        if self.dedup:
+            dd = set()
+        for ind_type, ind_regex in self.patterns.items():
+            matches = ind_regex.findall(data)
+
+            for ind_match in matches:
+                if isinstance(ind_match, tuple):
+                    ind_match = ind_match[0]
+
+                if self.is_whitelisted(ind_match, ind_type):
+                    continue
+
+                if self.dedup:
+                    if (ind_type, ind_match) in dd:
+                        continue
+
+                    dd.add((ind_type, ind_match))
+
+                self.handler.print_match(fpath, page_num, ind_type, ind_match)
+
     def parse_file(self, fpath):
         with open(fpath, 'rb') as f:
             try:
-                pdf = PdfFileReader(f, strict = False)
+                if args.PDF2TXT:
+                    data = self.convert_pdf(f)
+                else:
+                    pdf = PdfFileReader(f, strict = False)
 
                 self.handler.print_header(fpath)
 
-                if self.dedup:
-                    dd = set()
-
                 page_num = 0
-                for page in pdf.pages:
-                    page_num += 1
-                    data = page.extractText()
+                if args.PDF2TXT:
+                    self.parse_file_helper(data, fpath, page_num)
+                else:
+                    for page in pdf.pages:
+                        page_num += 1
+                        data = page.extractText()
+                        self.parse_file_helper(data, fpath, page_num)
 
-                    for ind_type, ind_regex in self.patterns.items():
-                        matches = ind_regex.findall(data)
-
-                        for ind_match in matches:
-                            if isinstance(ind_match, tuple):
-                                ind_match = ind_match[0]
-
-                            if self.is_whitelisted(ind_match, ind_type):
-                                continue
-
-                            if self.dedup:
-                                if (ind_type, ind_match) in dd:
-                                    continue
-
-                                dd.add((ind_type, ind_match))
-
-                            self.handler.print_match(fpath, page_num, ind_type, ind_match)
                 self.handler.print_footer(fpath)
             except (KeyboardInterrupt, SystemExit):
                 raise
             except Exception as e:
+                print str(e)
                 self.handler.print_error(fpath, e)
 
     def parse(self):
@@ -142,6 +169,7 @@ argparser.add_argument('PDF', action='store', help='File/directory path to PDF r
 argparser.add_argument('-p', dest='INI', default='patterns.ini', help='Pattern file')
 argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json/yara)')
 argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
+argparser.add_argument('-t', dest='PDF2TXT', action='store_true', default=True, help='Use PDF2TXT')
 args = argparser.parse_args()
 
 if __name__ == "__main__":
