@@ -37,11 +37,9 @@
 ###################################################################################################
 
 import os
-import sys
 import fnmatch
 import argparse
 import re
-import traceback
 from StringIO import StringIO
 try:
     import configparser as ConfigParser
@@ -203,7 +201,7 @@ class IOC_Parser(object):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('PDF', action='store', help='File/directory path to PDF report(s)')
-    argparser.add_argument('-p', dest='INI', default='patterns.ini', help='Pattern file')
+    argparser.add_argument('-p', dest='INI', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'patterns.ini'), help='Pattern file')
     argparser.add_argument('-f', dest='FORMAT', default='csv', help='Output format (csv/json/yara)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
     argparser.add_argument('-l', dest='LIB', default='pypdf2', help='PDF parsing library (pypdf2/pdfminer)')
