@@ -72,10 +72,8 @@ from whitelist import WhiteList
 class IOC_Parser(object):
     patterns = {}
 
-    def __init__(self, patterns_ini='patterns.ini', format='csv', dedup=False, library='pypdf2'):
+    def __init__(self, patterns_ini, format='csv', dedup=False, library='pypdf2'):
         basedir = os.path.dirname(os.path.abspath(__file__))
-        if patterns_ini == 'patterns.ini':
-            patterns_ini = os.path.join(basedir, 'patterns.ini')
         self.load_patterns(patterns_ini)
         self.whitelist = WhiteList(basedir)
         self.handler = output.getHandler(format)
