@@ -213,27 +213,27 @@ class IOC_Parser(object):
 
     def parse_html(self, fpath):
         with open(fpath, 'rb') as f:
-            #try:
+            try:
                 data = f.read()
                 soup = BeautifulSoup(data)
                 html = soup.findAll(text=True)
 
-                text = ''
+                text = u''
                 for elem in html:
                     if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
                         continue
-                    elif re.match('<!--.*-->', repr(elem)):
+                    elif re.match('<!--.*-->', unicode(elem)):
                         continue
                     else:
-                        text += repr(elem)
+                        text += unicode(elem)
 
                 self.handler.print_header(fpath)
                 self.parse_page(fpath, text, 1)
                 self.handler.print_footer(fpath)
-            # except (KeyboardInterrupt, SystemExit):
-            #     raise
-            # except Exception as e:
-            #     self.handler.print_error(fpath, e)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception as e:
+                self.handler.print_error(fpath, e)
 
     def parse(self, path):
         if os.path.isfile(path):
