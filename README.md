@@ -17,3 +17,6 @@ One of the following PDF parsing libraries:
 
 For HTML parsing support:
 * [BeautifulSoup](http://www.crummy.com/software/BeautifulSoup/) - *pip install beautifulsoup4*
+
+For HTTP(S) support:
+* [requests](http://docs.python-requests.org/en/latest/) - *pip install requests*

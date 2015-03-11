@@ -68,6 +68,11 @@ try:
     IMPORTS.append('beautifulsoup')
 except ImportError:
     pass
+try:
+    import requests
+    IMPORTS.append('requests')
+except ImportError:
+    pass
 
 # Import additional project source files
 import output
@@ -142,59 +147,57 @@ class IOC_Parser(object):
 
                 self.handler.print_match(fpath, page_num, ind_type, ind_match)
 
-    def parse_pdf_pypdf2(self,fpath):
-        with open(fpath, 'rb') as f:
-            try:
-                pdf = PdfFileReader(f, strict = False)
+    def parse_pdf_pypdf2(self, f, fpath):
+        try:
+            pdf = PdfFileReader(f, strict = False)
 
-                if self.dedup:
-                    self.dedup_store = set()
+            if self.dedup:
+                self.dedup_store = set()
 
-                self.handler.print_header(fpath)
-                page_num = 0
-                for page in pdf.pages:
-                    page_num += 1
+            self.handler.print_header(fpath)
+            page_num = 0
+            for page in pdf.pages:
+                page_num += 1
 
-                    data = page.extractText()
+                data = page.extractText()
 
-                    self.parse_page(fpath, data, page_num)
-                self.handler.print_footer(fpath)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except Exception as e:
-                self.handler.print_error(fpath, e)
+                self.parse_page(fpath, data, page_num)
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(fpath, e)
 
-    def parse_pdf_pdfminer(self,fpath):
-        with open(fpath, 'rb') as f:
-            try:
-                laparams = LAParams()
-                laparams.all_texts = True  
-                rsrcmgr = PDFResourceManager()
-                pagenos = set()
+    def parse_pdf_pdfminer(self, f, fpath):
+        try:
+            laparams = LAParams()
+            laparams.all_texts = True  
+            rsrcmgr = PDFResourceManager()
+            pagenos = set()
 
-                if self.dedup:
-                    self.dedup_store = set()
+            if self.dedup:
+                self.dedup_store = set()
 
-                self.handler.print_header(fpath)
-                page_num = 0
-                for page in PDFPage.get_pages(f, pagenos, check_extractable=True):
-                    page_num += 1
+            self.handler.print_header(fpath)
+            page_num = 0
+            for page in PDFPage.get_pages(f, pagenos, check_extractable=True):
+                page_num += 1
 
-                    retstr = StringIO()
-                    device = TextConverter(rsrcmgr, retstr, laparams=laparams)
-                    interpreter = PDFPageInterpreter(rsrcmgr, device)
-                    interpreter.process_page(page)
-                    data = retstr.getvalue()
-                    retstr.close()
+                retstr = StringIO()
+                device = TextConverter(rsrcmgr, retstr, laparams=laparams)
+                interpreter = PDFPageInterpreter(rsrcmgr, device)
+                interpreter.process_page(page)
+                data = retstr.getvalue()
+                retstr.close()
 
-                    self.parse_page(fpath, data, page_num)
-                self.handler.print_footer(fpath)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except Exception as e:
-                self.handler.print_error(fpath, e)
+                self.parse_page(fpath, data, page_num)
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(fpath, e)
 
-    def parse_pdf(self, fpath):
+    def parse_pdf(self, f, fpath):
         parser_format = "parse_pdf_" + self.library
         try:
             self.parser_func = getattr(self, parser_format)
@@ -202,62 +205,82 @@ class IOC_Parser(object):
             e = 'Selected PDF parser library is not supported: %s' % (self.library)
             raise NotImplementedError(e)
             
-        self.parser_func(fpath)
+        self.parser_func(f, fpath)
 
-    def parse_txt(self, fpath):
-        with open(fpath, 'rb') as f:
+    def parse_txt(self, f, fpath):
+        try:
             data = f.read()
             self.handler.print_header(fpath)
             self.parse_page(fpath, data, 1)
             self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(fpath, e)
 
-    def parse_html(self, fpath):
-        with open(fpath, 'rb') as f:
-            try:
-                data = f.read()
-                soup = BeautifulSoup(data)
-                html = soup.findAll(text=True)
+    def parse_html(self, f, fpath):
+        try:
+            data = f.read()
+            soup = BeautifulSoup(data)
+            html = soup.findAll(text=True)
 
-                text = u''
-                for elem in html:
-                    if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
-                        continue
-                    elif re.match('<!--.*-->', unicode(elem)):
-                        continue
-                    else:
-                        text += unicode(elem)
+            text = u''
+            for elem in html:
+                if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+                    continue
+                elif re.match('<!--.*-->', unicode(elem)):
+                    continue
+                else:
+                    text += unicode(elem)
 
-                self.handler.print_header(fpath)
-                self.parse_page(fpath, text, 1)
-                self.handler.print_footer(fpath)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except Exception as e:
-                self.handler.print_error(fpath, e)
+            self.handler.print_header(fpath)
+            self.parse_page(fpath, text, 1)
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(fpath, e)
 
     def parse(self, path):
-        if os.path.isfile(path):
-            self.parser_func(path)
-            return
+        try:
+            if path.startswith('http://') or path.startswith('https://'):
+                if 'requests' not in IMPORTS:
+                    e = 'HTTP library not found: requests'
+                    raise ImportError(e)
+                headers = { 'User-Agent': 'Mozilla/5.0 Gecko Firefox' }
+                r = requests.get(path, headers=headers)
+                r.raise_for_status()
+                f = StringIO(r.content)
+                self.parser_func(f, path)
+                return
+            elif os.path.isfile(path):
+                with open(path, 'rb') as f:
+                    self.parser_func(f, path)
+                return
+            elif os.path.isdir(path):
+                for walk_root, walk_dirs, walk_files in os.walk(path):
+                    for walk_file in fnmatch.filter(walk_files, self.ext_filter):
+                        fpath = os.path.join(walk_root, walk_file)
+                        with open(fpath, 'rb') as f:
+                            self.parser_func(f, fpath)
+                return
 
-        if os.path.isdir(path):
-            for walk_root, walk_dirs, walk_files in os.walk(path):
-                for walk_file in fnmatch.filter(walk_files, self.ext_filter):
-                    self.parser_func(os.path.join(walk_root, walk_file))
-            return
-
-        e = 'File path is not a file or directory: %s' % (path)
-        raise IOError(e)
+            e = 'File path is not a file, directory or URL: %s' % (path)
+            raise IOError(e)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(path, e)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('FILE', action='store', help='File/directory to report(s)')
+    argparser.add_argument('PATH', action='store', help='File/directory/URL to report(s)')
     argparser.add_argument('-p', dest='INI', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'patterns.ini'), help='Pattern file')
     argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt)')
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
-    argparser.add_argument('-l', dest='LIB', default='pypdf2', help='PDF parsing library (pypdf2/pdfminer)')
+    argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
     args = argparser.parse_args()
 
     parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.OUTPUT_FORMAT, args.DEDUP, args.LIB)
-    parser.parse(args.FILE)
+    parser.parse(args.PATH)
