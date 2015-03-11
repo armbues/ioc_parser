@@ -3,7 +3,7 @@ IOC Parser is a tool to extract indicators of compromise from security reports i
 
 ## Usage
 **ioc-parser.py [-h] [-p INI] [-i FORMAT] [-o FORMAT] [-d] [-l LIB] FILE**
-* *PDF* File/directory path to report(s)
+* *FILE* File/directory path to report(s)
 * *-p INI* Pattern file
 * *-i FORMAT* Input format (pdf/txt)
 * *-o FORMAT* Output format (csv/json/yara)
@@ -14,3 +14,5 @@ IOC Parser is a tool to extract indicators of compromise from security reports i
 One of the following PDF parsing libraries:
 * [PyPDF2](https://github.com/mstamy2/PyPDF2) - *pip install pypdf2*
 * [pdfminer](https://github.com/euske/pdfminer) - *pip install pdfminer*
+For HTML parsing support:
+* [BeautifulSoup](http://www.crummy.com/software/BeautifulSoup/) - *pip install beautifulsoup4*
