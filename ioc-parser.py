@@ -47,11 +47,11 @@ try:
 except ImportError:
     import ConfigParser
 
-# Import available PDF parser libraries
-PARSER_LIBS = []
+# Import optional third-party libraries
+IMPORTS = []
 try:
     from PyPDF2 import PdfFileReader
-    PARSER_LIBS.append('pypdf2')
+    IMPORTS.append('pypdf2')
 except ImportError:
     pass
 try:
@@ -60,11 +60,16 @@ try:
     from pdfminer.converter import TextConverter
     from pdfminer.pdfinterp import PDFPageInterpreter
     from pdfminer.layout import LAParams
-    PARSER_LIBS.append('pdfminer')
+    IMPORTS.append('pdfminer')
+except ImportError:
+    pass
+try:
+    import BeautifulSoup
+    IMPORTS.append('beautifulsoup')
 except ImportError:
     pass
 
-# Import additional source files
+# Import additional project source files
 import output
 from whitelist import WhiteList
 
@@ -88,8 +93,12 @@ class IOC_Parser(object):
 
         self.library = library
         if input_format == 'pdf':
-            if library not in PARSER_LIBS:
+            if library not in IMPORTS:
                 e = 'Selected PDF parser library not found: %s' % (library)
+                raise ImportError(e)
+        elif input_format == 'html':
+            if 'beautifulsoup' not in IMPORTS:
+                e = 'HTML parser library not found: BeautifulSoup'
                 raise ImportError(e)
 
     def load_patterns(self, fpath):
@@ -202,6 +211,30 @@ class IOC_Parser(object):
             self.parse_page(fpath, data, 1)
             self.handler.print_footer(fpath)
 
+    def parse_html(self, fpath):
+        with open(fpath, 'rb') as f:
+            try:
+                data = f.read()
+                soup = BeautifulSoup.BeautifulSoup(data)
+                html = soup.findAll(text=True)
+
+                text = ''
+                for elem in html:
+                    if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+                        continue
+                    elif re.match('<!--.*-->', str(elem)):
+                        continue
+                    else:
+                        text += str(elem)
+
+                self.handler.print_header(fpath)
+                self.parse_page(fpath, text, 1)
+                self.handler.print_footer(fpath)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception as e:
+                self.handler.print_error(fpath, e)
+
     def parse(self, path):
         if os.path.isfile(path):
             self.parser_func(path)
@@ -218,7 +251,7 @@ class IOC_Parser(object):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('FILE', action='store', help='File/directory path to report(s)')
+    argparser.add_argument('FILE', action='store', help='File/directory to report(s)')
     argparser.add_argument('-p', dest='INI', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'patterns.ini'), help='Pattern file')
     argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt)')
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara)')
