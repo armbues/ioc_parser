@@ -129,6 +129,9 @@ class IOC_Parser(object):
         return False
 
     def parse_page(self, fpath, data, page_num):
+        if self.dedup:
+            self.dedup_store = set()
+
         for ind_type, ind_regex in self.patterns.items():
             matches = ind_regex.findall(data)
 
