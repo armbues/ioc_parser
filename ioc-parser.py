@@ -209,6 +209,9 @@ class IOC_Parser(object):
 
     def parse_txt(self, f, fpath):
         try:
+            if self.dedup:
+                self.dedup_store = set()
+
             data = f.read()
             self.handler.print_header(fpath)
             self.parse_page(fpath, data, 1)
@@ -220,6 +223,9 @@ class IOC_Parser(object):
 
     def parse_html(self, f, fpath):
         try:
+            if self.dedup:
+                self.dedup_store = set()
+                
             data = f.read()
             soup = BeautifulSoup(data)
             html = soup.findAll(text=True)
