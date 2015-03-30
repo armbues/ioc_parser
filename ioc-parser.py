@@ -81,12 +81,17 @@ from whitelist import WhiteList
 class IOC_Parser(object):
     patterns = {}
 
-    def __init__(self, patterns_ini, input_format = 'pdf', output_format='csv', dedup=False, library='pypdf2'):
+    def __init__(self, patterns_ini, input_format = 'pdf', output_format='csv', dedup=False, library='pypdf2', campaign='Unknown', campaign_confidence='low', confidence='low', impact='low', tags=[]):
         basedir = os.path.dirname(os.path.abspath(__file__))
         self.load_patterns(patterns_ini)
         self.whitelist = WhiteList(basedir)
         self.handler = output.getHandler(output_format)
         self.dedup = dedup
+        self.campaign = campaign
+        self.campaign_confidence = campaign_confidence
+        self.confidence = confidence
+        self.impact = impact
+        self.tags = tags
 
         self.ext_filter = "*." + input_format
         parser_format = "parse_" + input_format
@@ -129,26 +134,34 @@ class IOC_Parser(object):
         return False
 
     def parse_page(self, fpath, data, page_num):
-        if self.dedup:
-            self.dedup_store = set()
+        try:
+            if self.dedup:
+                self.dedup_store = set()
 
-        for ind_type, ind_regex in self.patterns.items():
-            matches = ind_regex.findall(data)
+            for ind_type, ind_regex in self.patterns.items():
+                matches = ind_regex.findall(data)
 
-            for ind_match in matches:
-                if isinstance(ind_match, tuple):
-                    ind_match = ind_match[0]
+                for ind_match in matches:
+                    if isinstance(ind_match, tuple):
+                        ind_match = ind_match[0]
 
-                if self.is_whitelisted(ind_match, ind_type):
-                    continue
-
-                if self.dedup:
-                    if (ind_type, ind_match) in self.dedup_store:
+                    if self.is_whitelisted(ind_match, ind_type):
                         continue
 
-                    self.dedup_store.add((ind_type, ind_match))
+                    if self.dedup:
+                        if (ind_type, ind_match) in self.dedup_store:
+                            continue
 
-                self.handler.print_match(fpath, page_num, ind_type, ind_match)
+                        self.dedup_store.add((ind_type, ind_match))
+
+                    tags = ""
+                    if len(self.tags) > 0:
+                        tags = ','.join(self.tags)
+                    self.handler.print_match(ind_match, ind_type, self.campaign, self.campaign_confidence, self.confidence, self.impact, tags)
+        except KeyError as e:
+            print "{0}".format(e)
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
 
     def parse_pdf_pypdf2(self, f, fpath):
         try:
@@ -207,7 +220,7 @@ class IOC_Parser(object):
         except AttributeError:
             e = 'Selected PDF parser library is not supported: %s' % (self.library)
             raise NotImplementedError(e)
-            
+
         self.parser_func(f, fpath)
 
     def parse_txt(self, f, fpath):
@@ -283,7 +296,12 @@ if __name__ == "__main__":
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
     argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
+    argparser.add_argument('-c', dest='CAMPAIGN', default='Unknown', help='Campaign attribution')
+    argparser.add_argument('--camp-conf', dest='CAMPAIGN_CONFIDENCE', default='low', help='Campaign confidence for crits')
+    argparser.add_argument('--confidence', dest='INDICATOR_CONFIDENCE', default='low', help='Indicator confidence for crits')
+    argparser.add_argument('--impact', dest='INDICATOR_IMPACT', default='low', help='Indicator impact for crits')
+    argparser.add_argument('-t', action='append', dest='TAGS', default=[], help='Bucket list tags for crits. Multiple -t options are allowed.')
     args = argparser.parse_args()
 
-    parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.OUTPUT_FORMAT, args.DEDUP, args.LIB)
+    parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.OUTPUT_FORMAT, args.DEDUP, args.LIB, args.CAMPAIGN, args.CAMPAIGN_CONFIDENCE, args.INDICATOR_CONFIDENCE, args.INDICATOR_IMPACT, args.TAGS)
     parser.parse(args.PATH)
