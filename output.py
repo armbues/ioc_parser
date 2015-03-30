@@ -4,6 +4,19 @@ import csv
 import json
 
 OUTPUT_FORMATS = ('csv', 'json', 'yara', )
+TYPE_CONVERSION = {
+    "CVE" : "CVE",
+    "Filename" : "Windows - FileName",
+    "Host" : "URI - Domain Name",
+    "MD5" : "Hash - MD5",
+    "SHA1" : "Hash - SHA1",
+    "URL" : "URI - URL",
+    "Email" : "Email - Address",
+    "Filepath" : "Windows - FilePath",
+    "IP" : "Address - ipv4-addr",
+    "Registry" : "Windows - Registry",
+    "SHA256" : "Hash - SHA256"
+    }
 
 def getHandler(output_format):
     output_format = output_format.lower()
@@ -31,13 +44,14 @@ class OutputHandler(object):
 
 class OutputHandler_csv(OutputHandler):
     def __init__(self):
-        self.csv_writer = csv.writer(sys.stdout, delimiter = '\t')
+        self.csv_writer = csv.writer(sys.stdout, delimiter = ',')
+	self.csv_writer.writerow(('Indicator', 'Type', 'Campaign', 'Campaign Confidence', 'Confidence', 'Impact', 'Bucket List'))
 
-    def print_match(self, fpath, page, name, match):
-        self.csv_writer.writerow((fpath, page, name, match))
+    def print_match(self, match, ind_type, campaign, campaign_confidence, confidence, impact, tags):
+        self.csv_writer.writerow((match, TYPE_CONVERSION[ind_type], campaign, campaign_confidence, confidence, impact, tags))
 
     def print_error(self, fpath, exception):
-        self.csv_writer.writerow((fpath, '0', 'error', exception))
+        self.csv_writer.writerow((exception, 'error', 'error', 'low', 'low', 'low', 'error'))
 
 class OutputHandler_json(OutputHandler):
     def print_match(self, fpath, page, name, match):
