@@ -114,4 +114,5 @@ class OutputHandler_bro(OutputHandler):
     def print_match(self, fpath, page, name, match):
         source_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
         
-        print ("\t".join([match,self.intel_types[name],source_name,"-","T","-"]))
+        if name in self.intel_types:
+            print ("\t".join([match,self.intel_types[name],source_name,"-","T","-"]))
