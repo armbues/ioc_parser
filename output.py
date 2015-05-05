@@ -97,7 +97,7 @@ class OutputHandler_bro(OutputHandler):
     def __init__(self):
         self.rule_enc = ''.join(chr(c) if chr(c).isupper() or chr(c).islower() or chr(c).isdigit() else '_' for c in range(256))
 
-        intel_types = dict({
+        self.intel_types = dict({
             "IP": "Intel::ADDR",
             "URL": "Intel::URL",
             "Email": "Intel::EMAIL",
@@ -114,4 +114,4 @@ class OutputHandler_bro(OutputHandler):
     def print_match(self, fpath, page, name, match):
         source_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
         
-        print ("\t".join([match,intel_types[name],source_name,"-","T","-"]))
+        print ("\t".join([match,self.intel_types[name],source_name,"-","T","-"]))
