@@ -94,12 +94,24 @@ class OutputHandler_yara(OutputHandler):
         print("}")
 
 class OutputHandler_bro(OutputHandler):    
-    # Acceptable Bro Intel types - Intel::ADDR/Intel::URL/Intel::SOFTWARE/Intel::EMAIL/Intel::DOMAIN/Intel::USER_NAME/Intel::FILE_HASH/Intel::FILE_NAME/Intel::CERT_HASH
+    def __init__(self):
+        self.rule_enc = ''.join(chr(c) if chr(c).isupper() or chr(c).islower() or chr(c).isdigit() else '_' for c in range(256))
+
+        intel_types = dict({
+            "IP": "Intel::ADDR",
+            "URL": "Intel::URL",
+            "Email": "Intel::EMAIL",
+            "Host": "Intel::DOMAIN",
+            "MD5": "Intel::FILE_HASH",
+            "SHA1": "Intel::FILE_HASH",
+            "SHA256": "Intel::FILE_HASH",
+            "Filename": "Intel::FILE_NAME",
+        })
+
     def print_header(self, fpath):
         print("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in")
     
     def print_match(self, fpath, page, name, match):
-        print("Type: " + name)
-
+        source_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
         
-        
+        print ("\t".join([match,intel_types[name],source_name,"-","T","-"]))
