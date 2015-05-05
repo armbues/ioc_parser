@@ -3,7 +3,7 @@ import sys
 import csv
 import json
 
-OUTPUT_FORMATS = ('csv', 'json', 'yara', )
+OUTPUT_FORMATS = ('csv', 'json', 'yara', 'bro',)
 
 def getHandler(output_format):
     output_format = output_format.lower()
@@ -92,3 +92,14 @@ class OutputHandler_yara(OutputHandler):
         print("\tcondition:")
         print("\t\t" + cond)
         print("}")
+
+class OutputHandler_bro(OutputHandler):    
+    # Acceptable Bro Intel types - Intel::ADDR/Intel::URL/Intel::SOFTWARE/Intel::EMAIL/Intel::DOMAIN/Intel::USER_NAME/Intel::FILE_HASH/Intel::FILE_NAME/Intel::CERT_HASH
+    def print_header(self, fpath):
+        print("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in")
+    
+    def print_match(self, fpath, page, name, match):
+        print("Type: " + name)
+
+        
+        
