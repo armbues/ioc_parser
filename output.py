@@ -109,6 +109,7 @@ class OutputHandler_bro(OutputHandler):
         })
 
     def print_match(self, fpath, page, name, match):
+        # Assumes the following Bro intel file header: #fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in
         source_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
         
         if name in self.intel_types:
