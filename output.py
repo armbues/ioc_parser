@@ -108,9 +108,6 @@ class OutputHandler_bro(OutputHandler):
             "Filename": "Intel::FILE_NAME",
         })
 
-    def print_header(self, fpath):
-        print("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in")
-    
     def print_match(self, fpath, page, name, match):
         source_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
         
