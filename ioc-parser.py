@@ -122,10 +122,12 @@ class IOC_Parser(object):
                 self.patterns[ind_type] = ind_regex
 
     def is_whitelisted(self, ind_match, ind_type):
-        for w in self.whitelist[ind_type]:
-            if w.findall(ind_match):
-                return True
-
+        try:
+            for w in self.whitelist[ind_type]:
+                if w.findall(ind_match):
+                    return True
+        except KeyError as e:
+            pass
         return False
 
     def parse_page(self, fpath, data, page_num):
