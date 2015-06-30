@@ -3,7 +3,7 @@ import sys
 import csv
 import json
 
-OUTPUT_FORMATS = ('csv', 'json', 'yara', )
+OUTPUT_FORMATS = ('csv', 'json', 'yara', 'bro',)
 
 def getHandler(output_format):
     output_format = output_format.lower()
@@ -92,3 +92,25 @@ class OutputHandler_yara(OutputHandler):
         print("\tcondition:")
         print("\t\t" + cond)
         print("}")
+
+class OutputHandler_bro(OutputHandler):    
+    def __init__(self):
+        self.rule_enc = ''.join(chr(c) if chr(c).isupper() or chr(c).islower() or chr(c).isdigit() else '_' for c in range(256))
+
+        self.intel_types = dict({
+            "IP": "Intel::ADDR",
+            "URL": "Intel::URL",
+            "Email": "Intel::EMAIL",
+            "Host": "Intel::DOMAIN",
+            "MD5": "Intel::FILE_HASH",
+            "SHA1": "Intel::FILE_HASH",
+            "SHA256": "Intel::FILE_HASH",
+            "Filename": "Intel::FILE_NAME",
+        })
+
+    def print_match(self, fpath, page, name, match):
+        # Assumes the following Bro intel file header: #fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in
+        source_name = os.path.splitext(os.path.basename(fpath))[0].translate(self.rule_enc)
+        
+        if name in self.intel_types:
+            print ("\t".join([match,self.intel_types[name],source_name,"-","T","-"]))
