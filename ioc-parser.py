@@ -28,7 +28,6 @@
 # Description:      IOC Parser is a tool to extract indicators of compromise from security reports
 #                   in PDF format.
 # Usage:            ioc-parser.py [-h] [-p INI] [-f FORMAT] PDF
-# Req.:             PyPDF2 (https://github.com/mstamy2/PyPDF2)
 # Author:           Armin Buescher (@armbues)
 # Contributors:     Angelo Dell'Aera (@angelodellaera)
 # Thanks to:        Jose Ramon Palanco
@@ -81,15 +80,18 @@ from whitelist import WhiteList
 class IOC_Parser(object):
     patterns = {}
 
-    def __init__(self, patterns_ini=None, input_format = 'pdf', output_format='csv', dedup=False, library='pypdf2'):
+    def __init__(self, patterns_ini=None, input_format='pdf', dedup=False, library='pdfminer', output_format='csv', output_handler=None):
         basedir = os.path.dirname(os.path.abspath(__file__))
         if patterns_ini is None:
             patterns_ini = os.path.join(basedir, 'patterns.ini')
 
         self.load_patterns(patterns_ini)
         self.whitelist = WhiteList(basedir)
-        self.handler = output.getHandler(output_format)
         self.dedup = dedup
+        if output_handler:
+            self.handler = output_handler
+        else:
+            self.handler = output.getHandler(output_format)
 
         self.ext_filter = "*." + input_format
         parser_format = "parse_" + input_format
@@ -293,5 +295,5 @@ if __name__ == "__main__":
     argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
     args = argparser.parse_args()
 
-    parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.OUTPUT_FORMAT, args.DEDUP, args.LIB)
+    parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.DEDUP, args.LIB, args.OUTPUT_FORMAT)
     parser.parse(args.PATH)
