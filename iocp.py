@@ -24,10 +24,10 @@
 #
 ###################################################################################################
 #
-# File:             ioc-parser.py
+# File:             iocp.py
 # Description:      IOC Parser is a tool to extract indicators of compromise from security reports
 #                   in PDF format.
-# Usage:            ioc-parser.py [-h] [-p INI] [-f FORMAT] PDF
+# Usage:            iocp.py [-h] [-p INI] [-f FORMAT] PDF
 # Author:           Armin Buescher (@armbues)
 # Contributors:     Angelo Dell'Aera (@angelodellaera)
 # Thanks to:        Jose Ramon Palanco
