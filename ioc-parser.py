@@ -81,8 +81,11 @@ from whitelist import WhiteList
 class IOC_Parser(object):
     patterns = {}
 
-    def __init__(self, patterns_ini, input_format = 'pdf', output_format='csv', dedup=False, library='pypdf2'):
+    def __init__(self, patterns_ini=None, input_format = 'pdf', output_format='csv', dedup=False, library='pypdf2'):
         basedir = os.path.dirname(os.path.abspath(__file__))
+        if patterns_ini is None:
+            patterns_ini = os.path.join(basedir, 'patterns.ini')
+
         self.load_patterns(patterns_ini)
         self.whitelist = WhiteList(basedir)
         self.handler = output.getHandler(output_format)
@@ -283,7 +286,7 @@ class IOC_Parser(object):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('PATH', action='store', help='File/directory/URL to report(s)')
-    argparser.add_argument('-p', dest='INI', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'patterns.ini'), help='Pattern file')
+    argparser.add_argument('-p', dest='INI', default=None, help='Pattern file')
     argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt)')
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
