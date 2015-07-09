@@ -8,5 +8,6 @@ class WhiteList(dict):
         fpaths = glob.glob(searchdir)
         for fpath in fpaths:
             t = os.path.splitext(os.path.split(fpath)[1])[0].split('_',1)[1]
-            patterns = [line.strip() for line in open(fpath)]
-            self[t]  = [re.compile(p) for p in patterns]
+            with open(fpath) as f:
+                patterns = [line.strip() for line in f]
+                self[t]  = [re.compile(p) for p in patterns]
