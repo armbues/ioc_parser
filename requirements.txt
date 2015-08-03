@@ -1,0 +1,4 @@
+beautifulsoup4>=4.4.0
+pdfminer>=20140328
+PyPDF2>=1.25.1
+requests>=2.7.0
