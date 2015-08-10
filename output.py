@@ -92,6 +92,7 @@ class OutputHandler_yara(OutputHandler):
         print("\tcondition:")
         print("\t\t" + cond)
         print("}")
+        
 class OutputHandler_netflow(OutputHandler):
     def __init__(self):
         print "host 255.255.255.255"
