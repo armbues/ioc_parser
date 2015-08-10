@@ -3,7 +3,7 @@ import sys
 import csv
 import json
 
-OUTPUT_FORMATS = ('csv', 'json', 'yara', )
+OUTPUT_FORMATS = ('csv', 'json', 'yara', 'netflow', )
 
 def getHandler(output_format):
     output_format = output_format.lower()
@@ -92,3 +92,14 @@ class OutputHandler_yara(OutputHandler):
         print("\tcondition:")
         print("\t\t" + cond)
         print("}")
+class OutputHandler_netflow(OutputHandler):
+    def __init__(self):
+        print "host 255.255.255.255"
+
+    def print_match(self, fpath, page, name, match):
+        data = {
+            'type' : name,
+            'match': match
+        }
+        if data["type"] == "IP":
+            print " or host %s " % data["match"]
