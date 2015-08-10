@@ -290,7 +290,7 @@ if __name__ == "__main__":
     argparser.add_argument('PATH', action='store', help='File/directory/URL to report(s)')
     argparser.add_argument('-p', dest='INI', default=None, help='Pattern file')
     argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt)')
-    argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara)')
+    argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara/netflow)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
     argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
     args = argparser.parse_args()
