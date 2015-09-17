@@ -3,7 +3,7 @@ import sys
 import csv
 import json
 
-OUTPUT_FORMATS = ('csv', 'json', 'yara', 'data')
+OUTPUT_FORMATS = ('csv', 'json', 'yara', 'data', 'netflow', )
 
 def getHandler(output_format):
     output_format = output_format.lower()
@@ -108,3 +108,15 @@ class OutputHandler_data(OutputHandler):
 
     def get_iocs(self):
         return self.ioc_records
+
+class OutputHandler_netflow(OutputHandler):
+    def __init__(self):
+        print "host 255.255.255.255"
+
+    def print_match(self, fpath, page, name, match):
+        data = {
+            'type' : name,
+            'match': match
+        }
+        if data["type"] == "IP":
+            print " or host %s " % data["match"]
