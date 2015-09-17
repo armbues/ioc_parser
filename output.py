@@ -3,7 +3,7 @@ import sys
 import csv
 import json
 
-OUTPUT_FORMATS = ('csv', 'json', 'yara', 'netflow', )
+OUTPUT_FORMATS = ('csv', 'json', 'yara', 'data', 'netflow', )
 
 def getHandler(output_format):
     output_format = output_format.lower()
@@ -70,7 +70,7 @@ class OutputHandler_yara(OutputHandler):
             self.cnt[name] += 1
         else:
             self.cnt[name] = 1
-        
+
         string_id = "$%s%d" % (name, self.cnt[name])
         self.sids.append(string_id)
         string_value = match.replace('\\', '\\\\')
@@ -92,7 +92,23 @@ class OutputHandler_yara(OutputHandler):
         print("\tcondition:")
         print("\t\t" + cond)
         print("}")
-        
+
+class OutputHandler_data(OutputHandler):
+    def __init__(self):
+        self.ioc_records = []
+
+    def print_match(self, fpath, page, name, match):
+        self.ioc_records.append({
+            'path' : fpath,
+            'file' : os.path.basename(fpath),
+            'page' : page,
+            'type' : name,
+            'match': match
+        })
+
+    def get_iocs(self):
+        return self.ioc_records
+
 class OutputHandler_netflow(OutputHandler):
     def __init__(self):
         print "host 255.255.255.255"
