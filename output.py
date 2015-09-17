@@ -95,16 +95,16 @@ class OutputHandler_yara(OutputHandler):
 
 class OutputHandler_data(OutputHandler):
     def __init__(self):
-        self.ioc_records = {}
+        self.ioc_records = []
 
     def print_match(self, fpath, page, name, match):
-        self.ioc_records[name] = {
+        self.ioc_records.append({
             'path' : fpath,
             'file' : os.path.basename(fpath),
             'page' : page,
             'type' : name,
             'match': match
-        }
+        })
 
     def get_iocs(self):
         return self.ioc_records
