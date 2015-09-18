@@ -79,6 +79,7 @@ from whitelist import WhiteList
 
 class IOC_Parser(object):
     patterns = {}
+    defang = {}
 
     def __init__(self, patterns_ini=None, input_format='pdf', dedup=False, library='pdfminer', output_format='csv', output_handler=None):
         basedir = os.path.dirname(os.path.abspath(__file__))
@@ -126,6 +127,14 @@ class IOC_Parser(object):
                 ind_regex = re.compile(ind_pattern)
                 self.patterns[ind_type] = ind_regex
 
+            try:
+                ind_defang = config.get(ind_type, 'defang')
+            except:
+                continue
+
+            if ind_defang:
+                self.defang[ind_type] = True
+
     def is_whitelisted(self, ind_match, ind_type):
         try:
             for w in self.whitelist[ind_type]:
@@ -145,6 +154,9 @@ class IOC_Parser(object):
 
                 if self.is_whitelisted(ind_match, ind_type):
                     continue
+
+                if ind_type in self.defang:
+                    ind_match = re.sub(r'\[\.\]', '.', ind_match)
 
                 if self.dedup:
                     if (ind_type, ind_match) in self.dedup_store:
