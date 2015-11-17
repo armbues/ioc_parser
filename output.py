@@ -31,7 +31,7 @@ class OutputHandler(object):
 
 class OutputHandler_csv(OutputHandler):
     def __init__(self):
-        self.csv_writer = csv.writer(sys.stdout, delimiter = '\t')
+        self.csv_writer = csv.writer(sys.stdout, delimiter = '\t', quoting=csv.QUOTE_NONNUMERIC)
 
     def print_match(self, fpath, page, name, match):
         self.csv_writer.writerow((fpath, page, name, match))

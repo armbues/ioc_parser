@@ -47,10 +47,8 @@ except ImportError:
     import ConfigParser
 
 # Import optional third-party libraries
-IMPORTS = []
 try:
     from PyPDF2 import PdfFileReader
-    IMPORTS.append('pypdf2')
 except ImportError:
     pass
 try:
@@ -59,17 +57,14 @@ try:
     from pdfminer.converter import TextConverter
     from pdfminer.pdfinterp import PDFPageInterpreter
     from pdfminer.layout import LAParams
-    IMPORTS.append('pdfminer')
 except ImportError:
     pass
 try:
     from bs4 import BeautifulSoup
-    IMPORTS.append('beautifulsoup')
 except ImportError:
     pass
 try:
     import requests
-    IMPORTS.append('requests')
 except ImportError:
     pass
 
@@ -104,11 +99,11 @@ class IOC_Parser(object):
 
         self.library = library
         if input_format == 'pdf':
-            if library not in IMPORTS:
+            if library not in sys.modules:
                 e = 'Selected PDF parser library not found: %s' % (library)
                 raise ImportError(e)
         elif input_format == 'html':
-            if 'beautifulsoup' not in IMPORTS:
+            if 'beautifulsoup' not in sys.modules:
                 e = 'HTML parser library not found: BeautifulSoup'
                 raise ImportError(e)
 
@@ -269,7 +264,7 @@ class IOC_Parser(object):
     def parse(self, path):
         try:
             if path.startswith('http://') or path.startswith('https://'):
-                if 'requests' not in IMPORTS:
+                if 'requests' not in sys.modules:
                     e = 'HTTP library not found: requests'
                     raise ImportError(e)
                 headers = { 'User-Agent': 'Mozilla/5.0 Gecko Firefox' }
