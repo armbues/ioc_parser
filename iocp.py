@@ -50,6 +50,12 @@ except ImportError:
 # Import optional third-party libraries
 IMPORTS = []
 try:
+    import xlrd
+    IMPORTS.append('xlrd')
+except ImportError:
+    pass
+
+try:
     from PyPDF2 import PdfFileReader
     IMPORTS.append('pypdf2')
 except ImportError:
@@ -112,6 +118,10 @@ class IOC_Parser(object):
             if 'beautifulsoup' not in IMPORTS:
                 e = 'HTML parser library not found: BeautifulSoup'
                 raise ImportError(e)
+        elif input_format == 'xlsx':
+            if 'xlrd' not in IMPORTS:
+                e = 'XLRD Library not found. Please visit: https://github.com/python-excel/xlrd'
+                raise ImportError(e)
 
     def load_patterns(self, fpath):
         config = ConfigParser.ConfigParser()
@@ -145,7 +155,7 @@ class IOC_Parser(object):
             pass
         return False
 
-    def parse_page(self, fpath, data, page_num, flag=0):
+    def parse_page(self, fpath, data, page_num, flag=0, sheet_name=''):
         """ Added flag and sheet_name variables for new inputs to help properly
         print output
         
@@ -155,6 +165,7 @@ class IOC_Parser(object):
         @param flag:
             0 = default (pdf/txt/html)
             2 = csv
+            3 = xls and xlsx
         @param sheet_name: to be used only with Excel spreadsheets
         """
         for ind_type, ind_regex in self.patterns.items():
@@ -177,7 +188,7 @@ class IOC_Parser(object):
                     self.dedup_store.add((ind_type, ind_match))
 
                 # Added flag to determine which type of output to display
-                self.handler.print_match(fpath, page_num, ind_type, ind_match, flag)
+                self.handler.print_match(fpath, page_num, ind_type, ind_match, flag, sheet_name)
 
     def parse_pdf_pypdf2(self, f, fpath):
         try:
@@ -285,7 +296,6 @@ class IOC_Parser(object):
 
         @author Robb Krasnow
         """
-
         try:
             if self.dedup:
                 self.dedup_store = set()
@@ -300,6 +310,50 @@ class IOC_Parser(object):
                     unicode_output = unicode(line, 'ascii', errors='ignore')
                                         
                     self.parse_page(fpath, unicode_output, csv_data.line_num, 2)
+
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(fpath, e)
+
+
+    def parse_xls(self, f, fpath):
+        """ Created this function just to allow a user to use 'xls' as an input
+        option without any errors.
+
+        @author Robb Krasnow
+        """
+        self.parse_xlsx(f, fpath)
+
+
+    def parse_xlsx(self, f, fpath):
+        """ This method is used to parse Microsoft Excel files
+        with either .xls or .xlsx extentions. The flag
+        used for this method to send to output.py is 3. Because
+        Excel spreadsheets may have multiple tabs, the sheet's
+        name is passed through the parse_page method in turn showing
+        that in the output.
+
+        @author Robb Krasnow
+        """
+        try:
+            if self.dedup:
+                self.dedup_store = set()
+
+            self.handler.print_header(fpath)
+            workbook = xlrd.open_workbook(fpath)
+            sheets = workbook.sheets()
+
+            for sheet in sheets:
+                sheet_name = sheet.name
+
+                for row in range(sheet.nrows):
+                    for col in range(sheet.ncols):
+                        if sheet.cell_value(row, col) is not xlrd.empty_cell.value:
+                            val = repr(sheet.cell_value(row, col))
+            
+                            self.parse_page(fpath, val, row+1, 3, sheet_name)
 
             self.handler.print_footer(fpath)
         except (KeyboardInterrupt, SystemExit):
@@ -343,7 +397,7 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('PATH', action='store', help='File/directory/URL to report(s)')
     argparser.add_argument('-p', dest='INI', default=None, help='Pattern file')
-    argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt/html)')
+    argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt/html/csv/xls/xlsx)')
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara/netflow)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
     argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
