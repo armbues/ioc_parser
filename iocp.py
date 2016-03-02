@@ -160,7 +160,7 @@ class IOC_Parser(object):
         print output
         
         @param fpath: the file path, directory, URL or email account
-        @param data: the data to be parse_pdf
+        @param data: the data to be parsed
         @param page_num: the page number of a pdf, line number of csv, xls or xlsx
         @param flag:
             0 = default (pdf/txt/html)
