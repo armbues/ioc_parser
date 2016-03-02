@@ -40,6 +40,7 @@ import sys
 import fnmatch
 import argparse
 import re
+import csv
 from StringIO import StringIO
 try:
     import configparser as ConfigParser
@@ -144,7 +145,18 @@ class IOC_Parser(object):
             pass
         return False
 
-    def parse_page(self, fpath, data, page_num):
+    def parse_page(self, fpath, data, page_num, flag=0):
+        """ Added flag and sheet_name variables for new inputs to help properly
+        print output
+        
+        @param fpath: the file path, directory, URL or email account
+        @param data: the data to be parse_pdf
+        @param page_num: the page number of a pdf, line number of csv, xls or xlsx
+        @param flag:
+            0 = default (pdf/txt/html)
+            2 = csv
+        @param sheet_name: to be used only with Excel spreadsheets
+        """
         for ind_type, ind_regex in self.patterns.items():
             matches = ind_regex.findall(data)
 
@@ -164,7 +176,8 @@ class IOC_Parser(object):
 
                     self.dedup_store.add((ind_type, ind_match))
 
-                self.handler.print_match(fpath, page_num, ind_type, ind_match)
+                # Added flag to determine which type of output to display
+                self.handler.print_match(fpath, page_num, ind_type, ind_match, flag)
 
     def parse_pdf_pypdf2(self, f, fpath):
         try:
@@ -265,6 +278,35 @@ class IOC_Parser(object):
             raise
         except Exception as e:
             self.handler.print_error(fpath, e)
+
+    def parse_csv(self, f, fpath):
+        """ This method is used to parse a csv file. The flag
+        used for this method to send to output.py is 2.
+
+        @author Robb Krasnow
+        """
+
+        try:
+            if self.dedup:
+                self.dedup_store = set()
+
+            self.handler.print_header(fpath)
+
+            with open(fpath, 'rb') as csvfile:
+                csv_data = csv.reader(csvfile, delimiter=',', quotechar='|')
+                
+                for row in csv_data:
+                    line = ', '.join(row).rstrip()
+                    unicode_output = unicode(line, 'ascii', errors='ignore')
+                                        
+                    self.parse_page(fpath, unicode_output, csv_data.line_num, 2)
+
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(fpath, e)
+
 
     def parse(self, path):
         try:
