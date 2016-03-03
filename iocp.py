@@ -56,6 +56,12 @@ except ImportError:
     pass
 
 try:
+    import gmail
+    IMPORTS.append('gmail')
+except ImportError:
+    pass
+
+try:
     from PyPDF2 import PdfFileReader
     IMPORTS.append('pypdf2')
 except ImportError:
@@ -120,7 +126,11 @@ class IOC_Parser(object):
                 raise ImportError(e)
         elif input_format == 'xlsx':
             if 'xlrd' not in IMPORTS:
-                e = 'XLRD Library not found. Please visit: https://github.com/python-excel/xlrd'
+                e = 'XLRD Library not found. Please visit: https://github.com/python-excel/xlrd or pip install xlrd'
+                raise ImportError(e)
+        elif input_format == 'gmail':
+            if 'gmail' not in IMPORTS:
+                e = 'Gmail library not found. Please visit: https://github.com/charlierguo/gmail'
                 raise ImportError(e)
 
     def load_patterns(self, fpath):
@@ -362,6 +372,52 @@ class IOC_Parser(object):
             self.handler.print_error(fpath, e)
 
 
+    def parse_gmail(self, username, password):
+        """ This method is used to parse the inbox of a valid 
+        Gmail account. The flag used for this method to send to
+        output.py is 1.
+
+        @author Robb Krasnow
+        @param username     The gmail account's username
+        @param password     The gmail account's password
+        """
+        try:
+            if self.dedup:
+                self.dedup_store = set()
+
+            # Log the user in
+            g = gmail.login(username, password)
+
+            # When the user is logged in, grab all the email from their inbox
+            # and parse all the messages for IOCs
+            if g.logged_in:
+                print "***** Login Successful. *****\n"
+
+                self.handler.print_header(username)
+                emails = g.inbox().mail()
+
+                for email in range(0, len(emails)):
+                    try:
+                        emails[email].fetch()
+                        content = emails[email].body
+                        subject = re.sub('(^\s|re:\s+|\r\n|fwd:\s+)', '', emails[email].subject, flags=re.IGNORECASE)
+
+                        self.parse_page(subject, content, 1, 1)
+                    except Exception as e:
+                        continue
+                
+                self.handler.print_footer(username)
+
+                print "\n***** %s emails found. *****" % len(emails)
+                g.logout()
+                print "***** Logout Successful. *****"
+            else:
+                sys.exit()
+        except gmail.exceptions.AuthenticationError:
+            print "Authentication Error"
+            sys.exit()
+
+
     def parse(self, path):
         try:
             if path.startswith('http://') or path.startswith('https://'):
@@ -385,6 +441,15 @@ class IOC_Parser(object):
                         with open(fpath, 'rb') as f:
                             self.parser_func(f, fpath)
                 return
+            # Check if the input from CLI has @gmail.com attached
+            # If so, grab the credentials, and send them to parse_gmail()
+            elif path.count("@gmail.com ") == 1 and len(path.split()) == 2:
+                gmail_account = path.split()
+                username = gmail_account[0]
+                password = gmail_account[1]
+                self.parser_func(username, password)
+
+                return
 
             e = 'File path is not a file, directory or URL: %s' % (path)
             raise IOError(e)
@@ -395,9 +460,9 @@ class IOC_Parser(object):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('PATH', action='store', help='File/directory/URL to report(s)')
+    argparser.add_argument('PATH', action='store', help='File/directory/URL to report(s)/Gmail account in double quotes ("username@gmail.com password")')
     argparser.add_argument('-p', dest='INI', default=None, help='Pattern file')
-    argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt/html/csv/xls/xlsx)')
+    argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt/html/csv/xls/xlsx/gmail)')
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara/netflow)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
     argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')

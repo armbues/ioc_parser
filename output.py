@@ -40,20 +40,27 @@ class OutputHandler_csv(OutputHandler):
     def print_error(self, fpath, exception):
         self.csv_writer.writerow((fpath, '0', 'error', exception))
 
-class OutputHandler_json(OutputHandler):
-    """
-     @param flag:
-        0 = default (pdf/txt/html)
-        2 = csv
-        3 = xls and xlsx
-    @param sheet    The sheet being parsed if Excel spreadsheet (single or multi-sheet)
-    """
+class OutputHandler_json(OutputHandler):    
     def print_match(self, fpath, page, name, match, flag, sheet=''):
+        """ @param flag:
+            0 = default (pdf/txt/html)
+            1 = gmail
+            2 = csv
+            3 = xls and xlsx
+        @param sheet    The sheet being parsed if Excel spreadsheet (single or multi-sheet)
+        """
         if flag == 0 or flag == 2:
             data = {
                 'path' : fpath,
                 'file' : os.path.basename(fpath),
                 'page' : page,
+                'type' : name,
+                'match': match
+            }
+        elif flag == 1:
+            data = {
+                'input' : 'gmail',
+                'subject' : fpath,
                 'type' : name,
                 'match': match
             }

@@ -3,9 +3,9 @@ IOC Parser is a tool to extract indicators of compromise from security reports i
 
 ## Usage
 **iocp.py [-h] [-p INI] [-i FORMAT] [-o FORMAT] [-d] [-l LIB] FILE**
-* *FILE* File/directory path to report(s)
+* *FILE* File/directory path to report(s)/Gmail account in double quotes ("username@gmail.com password")
 * *-p INI* Pattern file
-* *-i FORMAT* Input format (pdf/txt/html/csv/xls/xlsx)
+* *-i FORMAT* Input format (pdf/txt/html/csv/xls/xlsx/gmail)
 * *-o FORMAT* Output format (csv/json/yara/netflow)
 * *-d* Deduplicate matches
 * *-l LIB* Parsing library
@@ -23,3 +23,6 @@ For HTTP(S) support:
 
 For XLS/XLSX support:
 * [xlrd](https://github.com/python-excel/xlrd) - *pip install xlrd*
+
+For Gmail support:
+* [gmail](https://github.com/charlierguo/gmail)
