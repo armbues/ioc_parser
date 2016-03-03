@@ -198,7 +198,7 @@ class IOC_Parser(object):
 
                     self.dedup_store.add((ind_type, ind_match))
 
-                # Added flag to determine which type of output to display
+                # Added flag and sheet_name to determine which type of output to display
                 self.handler.print_match(fpath, page_num, ind_type, ind_match, flag, sheet_name)
 
     def parse_pdf_pypdf2(self, f, fpath):
