@@ -174,6 +174,7 @@ class IOC_Parser(object):
         @param page_num: the page number of a pdf, line number of csv, xls or xlsx
         @param flag:
             0 = default (pdf/txt/html)
+            1 = gmail
             2 = csv
             3 = xls and xlsx
         @param sheet_name: to be used only with Excel spreadsheets
