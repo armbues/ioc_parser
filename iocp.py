@@ -190,7 +190,7 @@ class IOC_Parser(object):
     def parse_pdf_pdfminer(self, f, fpath):
         try:
             laparams = LAParams()
-            laparams.all_texts = True  
+            laparams.all_texts = True
             rsrcmgr = PDFResourceManager()
             pagenos = set()
 
@@ -223,7 +223,7 @@ class IOC_Parser(object):
         except AttributeError:
             e = 'Selected PDF parser library is not supported: %s' % (self.library)
             raise NotImplementedError(e)
-            
+
         self.parser_func(f, fpath)
 
     def parse_txt(self, f, fpath):
@@ -244,7 +244,7 @@ class IOC_Parser(object):
         try:
             if self.dedup:
                 self.dedup_store = set()
-                
+
             data = f.read()
             soup = BeautifulSoup(data)
             html = soup.findAll(text=True)
