@@ -35,12 +35,16 @@
 #
 ###################################################################################################
 
+#from __future__ import unicode_literals
 import os
 import sys
 import fnmatch
 import argparse
 import re
-from StringIO import StringIO
+try:
+    from io import StringIO
+except:
+    from StringIO import StringIO
 try:
     import configparser as ConfigParser
 except ImportError:
@@ -190,7 +194,7 @@ class IOC_Parser(object):
     def parse_pdf_pdfminer(self, f, fpath):
         try:
             laparams = LAParams()
-            laparams.all_texts = True  
+            laparams.all_texts = True
             rsrcmgr = PDFResourceManager()
             pagenos = set()
 
@@ -223,7 +227,7 @@ class IOC_Parser(object):
         except AttributeError:
             e = 'Selected PDF parser library is not supported: %s' % (self.library)
             raise NotImplementedError(e)
-            
+
         self.parser_func(f, fpath)
 
     def parse_txt(self, f, fpath):
@@ -244,19 +248,19 @@ class IOC_Parser(object):
         try:
             if self.dedup:
                 self.dedup_store = set()
-                
+
             data = f.read()
             soup = BeautifulSoup(data)
             html = soup.findAll(text=True)
 
-            text = u''
+            text = ''
             for elem in html:
                 if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
                     continue
-                elif re.match('<!--.*-->', unicode(elem)):
+                elif re.match('<!--.*-->', elem):
                     continue
                 else:
-                    text += unicode(elem)
+                    text += elem
 
             self.handler.print_header(fpath)
             self.parse_page(fpath, text, 1)
@@ -304,7 +308,7 @@ if __name__ == "__main__":
     argparser.add_argument('-i', dest='INPUT_FORMAT', default='pdf', help='Input format (pdf/txt/html)')
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara/netflow)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
-    argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
+    argparser.add_argument('-l', dest='LIB', default='pypdf2', help='PDF parsing library (pypdf2/pdfminer)')
     args = argparser.parse_args()
 
     parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.DEDUP, args.LIB, args.OUTPUT_FORMAT)

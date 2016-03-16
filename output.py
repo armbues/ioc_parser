@@ -70,7 +70,7 @@ class OutputHandler_yara(OutputHandler):
             self.cnt[name] += 1
         else:
             self.cnt[name] = 1
-        
+
         string_id = "$%s%d" % (name, self.cnt[name])
         self.sids.append(string_id)
         string_value = match.replace('\\', '\\\\')
@@ -92,10 +92,10 @@ class OutputHandler_yara(OutputHandler):
         print("\tcondition:")
         print("\t\t" + cond)
         print("}")
-        
+
 class OutputHandler_netflow(OutputHandler):
     def __init__(self):
-        print "host 255.255.255.255"
+        print("host 255.255.255.255")
 
     def print_match(self, fpath, page, name, match):
         data = {
@@ -103,4 +103,4 @@ class OutputHandler_netflow(OutputHandler):
             'match': match
         }
         if data["type"] == "IP":
-            print " or host %s " % data["match"]
+            print(" or host %s " % data["match"])
