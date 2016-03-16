@@ -35,6 +35,7 @@
 #
 ###################################################################################################
 
+#from __future__ import unicode_literals
 import os
 import sys
 import fnmatch
@@ -252,14 +253,14 @@ class IOC_Parser(object):
             soup = BeautifulSoup(data)
             html = soup.findAll(text=True)
 
-            text = u''
+            text = ''
             for elem in html:
                 if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
                     continue
-                elif re.match('<!--.*-->', unicode(elem)):
+                elif re.match('<!--.*-->', elem):
                     continue
                 else:
-                    text += unicode(elem)
+                    text += elem
 
             self.handler.print_header(fpath)
             self.parse_page(fpath, text, 1)
