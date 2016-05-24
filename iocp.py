@@ -288,6 +288,7 @@ class IOC_Parser(object):
                 self.dedup_store = set()
                 
             data = f.read()
+            soup = BeautifulSoup(data, 'html.parser')   # Add "html.parser" to supress user warning
             html = soup.findAll(text=True)
 
             text = u''
