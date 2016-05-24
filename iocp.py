@@ -94,7 +94,7 @@ class IOC_Parser(object):
     patterns = {}
     defang = {}
 
-    def __init__(self, patterns_ini=None, input_format='pdf', dedup=False, library='pdfminer', output_format='csv', output_handler=None):
+    def __init__(self, patterns_ini=None, input_format='pdf', dedup=False, library='pdfminer', output_format='csv', proxy=None, output_handler=None):
         basedir = os.path.dirname(os.path.abspath(__file__))
         if patterns_ini is None:
             patterns_ini = os.path.join(basedir, 'patterns.ini')
@@ -102,6 +102,13 @@ class IOC_Parser(object):
         self.load_patterns(patterns_ini)
         self.whitelist = WhiteList(basedir)
         self.dedup = dedup
+
+        # Depending on the type of proxy, set the proper proxy setting for storage to be used with Requests
+        if proxy.startswith('http://'):
+            self.proxy = {'http': proxy}
+        elif proxy.startswith('https://'):
+            self.proxy = {'https': proxy}
+
         if output_handler:
             self.handler = output_handler
         else:
@@ -281,7 +288,6 @@ class IOC_Parser(object):
                 self.dedup_store = set()
                 
             data = f.read()
-            soup = BeautifulSoup(data)
             html = soup.findAll(text=True)
 
             text = u''
@@ -378,9 +384,9 @@ class IOC_Parser(object):
         Gmail account. The flag used for this method to send to
         output.py is 1.
 
-        @author Robb Krasnow
-        @param username     The gmail account's username
-        @param password     The gmail account's password
+        @author                 Robb Krasnow
+        @param      username    The gmail account's username
+        @param      password    The gmail account's password
         """
         try:
             if self.dedup:
@@ -392,7 +398,7 @@ class IOC_Parser(object):
             # When the user is logged in, grab all the email from their inbox
             # and parse all the messages for IOCs
             if g.logged_in:
-                print "***** Login Successful. *****\n"
+                print '***** Login Successful. *****\n'
 
                 self.handler.print_header(username)
                 emails = g.inbox().mail()
@@ -409,13 +415,13 @@ class IOC_Parser(object):
                 
                 self.handler.print_footer(username)
 
-                print "\n***** %s emails found. *****" % len(emails)
+                print '\n***** %s emails found. *****' % len(emails)
                 g.logout()
-                print "***** Logout Successful. *****"
+                print '***** Logout Successful. *****'
             else:
                 sys.exit()
         except gmail.exceptions.AuthenticationError:
-            print "Authentication Error"
+            print 'Authentication Error'
             sys.exit()
 
 
@@ -426,8 +432,14 @@ class IOC_Parser(object):
                     e = 'HTTP library not found: requests'
                     raise ImportError(e)
                 headers = { 'User-Agent': 'Mozilla/5.0 Gecko Firefox' }
-                r = requests.get(path, headers=headers)
-                r.raise_for_status()
+
+                # If using proxy, make request with proxy from --proxy switch
+                # Otherwise make the call normally
+                if self.proxy is not None:
+                    r = requests.get(path, headers=headers, proxies=self.proxy)
+                else:
+                    r = requests.get(path, headers=headers)
+
                 f = StringIO(r.content)
                 self.parser_func(f, path)
                 return
@@ -444,7 +456,7 @@ class IOC_Parser(object):
                 return
             # Check if the input from CLI has @gmail.com attached
             # If so, grab the credentials, and send them to parse_gmail()
-            elif path.count("@gmail.com ") == 1 and len(path.split()) == 2:
+            elif path.count('@gmail.com ') == 1 and len(path.split()) == 2:
                 gmail_account = path.split()
                 username = gmail_account[0]
                 password = gmail_account[1]
@@ -467,7 +479,8 @@ if __name__ == "__main__":
     argparser.add_argument('-o', dest='OUTPUT_FORMAT', default='csv', help='Output format (csv/json/yara/netflow)')
     argparser.add_argument('-d', dest='DEDUP', action='store_true', default=False, help='Deduplicate matches')
     argparser.add_argument('-l', dest='LIB', default='pdfminer', help='PDF parsing library (pypdf2/pdfminer)')
+    argparser.add_argument('--proxy', dest='PROXY', default=None, help='Sets proxy (http(s)://server:port)')
     args = argparser.parse_args()
 
-    parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.DEDUP, args.LIB, args.OUTPUT_FORMAT)
+    parser = IOC_Parser(args.INI, args.INPUT_FORMAT, args.DEDUP, args.LIB, args.OUTPUT_FORMAT, args.PROXY)
     parser.parse(args.PATH)
