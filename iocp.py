@@ -104,10 +104,13 @@ class IOC_Parser(object):
         self.dedup = dedup
 
         # Depending on the type of proxy, set the proper proxy setting for storage to be used with Requests
-        if proxy.startswith('http://'):
-            self.proxy = {'http': proxy}
-        elif proxy.startswith('https://'):
-            self.proxy = {'https': proxy}
+        if proxy is not None:
+            if proxy.startswith('http://'):
+                self.proxy = {'http': proxy}
+            elif proxy.startswith('https://'):
+                self.proxy = {'https': proxy}
+        else:
+            self.proxy = proxy
 
         if output_handler:
             self.handler = output_handler
