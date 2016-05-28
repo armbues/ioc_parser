@@ -33,21 +33,46 @@ class OutputHandler_csv(OutputHandler):
     def __init__(self):
         self.csv_writer = csv.writer(sys.stdout, delimiter = '\t')
 
-    def print_match(self, fpath, page, name, match):
-        self.csv_writer.writerow((fpath, page, name, match))
+    # Added flag and sheet which are unused but needed to make CSV output work
+    def print_match(self, fpath, page, name, match, flag, sheet=''):
+        self.csv_writer.writerow((fpath, page, name, match, sheet))
 
     def print_error(self, fpath, exception):
         self.csv_writer.writerow((fpath, '0', 'error', exception))
 
-class OutputHandler_json(OutputHandler):
-    def print_match(self, fpath, page, name, match):
-        data = {
-            'path' : fpath,
-            'file' : os.path.basename(fpath),
-            'page' : page,
-            'type' : name,
-            'match': match
-        }
+class OutputHandler_json(OutputHandler):    
+    def print_match(self, fpath, page, name, match, flag, sheet=''):
+        """ @param flag:
+            0 = default (pdf/txt/html)
+            1 = gmail
+            2 = csv
+            3 = xls and xlsx
+        @param sheet    The sheet being parsed if Excel spreadsheet (single or multi-sheet)
+        """
+        if flag == 0 or flag == 2:
+            data = {
+                'path' : fpath,
+                'file' : os.path.basename(fpath),
+                'page' : page,
+                'type' : name,
+                'match': match
+            }
+        elif flag == 1:
+            data = {
+                'input' : 'gmail',
+                'subject' : fpath,
+                'type' : name,
+                'match': match
+            }
+        elif flag == 3:
+            data = {
+                'path' : fpath,
+                'file' : os.path.basename(fpath),
+                'sheet' : sheet,
+                'line' : page,
+                'type' : name,
+                'match': match,
+            }
 
         print(json.dumps(data))
 
@@ -65,7 +90,8 @@ class OutputHandler_yara(OutputHandler):
     def __init__(self):
         self.rule_enc = ''.join(chr(c) if chr(c).isupper() or chr(c).islower() or chr(c).isdigit() else '_' for c in range(256))
 
-    def print_match(self, fpath, page, name, match):
+    # Added flag and sheet which are unused but needed to make YARA output work
+    def print_match(self, fpath, page, name, match, flag, sheet=''):
         if name in self.cnt:
             self.cnt[name] += 1
         else:
@@ -97,7 +123,8 @@ class OutputHandler_netflow(OutputHandler):
     def __init__(self):
         print "host 255.255.255.255"
 
-    def print_match(self, fpath, page, name, match):
+    # Added flag and sheet which are unused but needed to make Netflow output work
+    def print_match(self, fpath, page, name, match, flag, sheet=''):
         data = {
             'type' : name,
             'match': match
