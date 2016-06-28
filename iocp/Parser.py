@@ -144,7 +144,7 @@ class Parser(object):
 	def load_whitelists(self, fpath):
 		whitelist = {}
 
-		searchdir = os.path.join(fpath, "/whitelist_*.ini")
+		searchdir = os.path.join(fpath, "whitelist_*.ini")
 		fpaths = glob.glob(searchdir)
 		for fpath in fpaths:
 			t = os.path.splitext(os.path.split(fpath)[1])[0].split('_',1)[1]
