@@ -4,8 +4,8 @@ import os
 from setuptools import setup
 
 setup(
-	name = "iocp",
-	version = "0.9.0",
+	name = "ioc_parser",
+	version = "0.9.1",
 	author = "Armin Buescher",
 	author_email = "armin.buescher@googlemail.com",
 	scripts=['bin/iocp'],
