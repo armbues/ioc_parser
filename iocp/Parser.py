@@ -253,32 +253,32 @@ class Parser(object):
 			raise
 
 	def parse_html(self, f, fpath):
-		try:
-			if self.dedup:
-				self.dedup_store = set()
+		# try:
+		# 	if self.dedup:
+		# 		self.dedup_store = set()
 				
-			data = f.read()
-			soup = BeautifulSoup(data)
-			html = soup.findAll(text=True)
+		# 	data = f.read()
+		# 	soup = BeautifulSoup(data)
+		# 	html = soup.findAll(text=True)
 
-			text = u''
+		# 	text = u''
 			
-			try:
-				for elem in html:
-				if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
-					continue
-				elif re.match('<!--.*-->', unicode(elem)):
-					continue
-				else:
-					text += unicode(elem)
-			# Handle 'bad' chars: 'ascii' codec can't encode character u
-			except :  continue
+		# 	try:
+		# 		for elem in html:
+		# 		if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+		# 			continue
+		# 		elif re.match('<!--.*-->', unicode(elem)):
+		# 			continue
+		# 		else:
+		# 			text += unicode(elem)
+		# 	# Handle 'bad' chars: 'ascii' codec can't encode character u
+		# 	except :  continue
 
-			self.handler.print_header(fpath)
-			self.parse_page(fpath, text, 1)
-			self.handler.print_footer(fpath)
-		except (KeyboardInterrupt, SystemExit):
-			raise
+		# 	self.handler.print_header(fpath)
+		# 	self.parse_page(fpath, text, 1)
+		# 	self.handler.print_footer(fpath)
+		# except (KeyboardInterrupt, SystemExit):
+		# 	raise
 
 	def parse(self, path):
 		try:
