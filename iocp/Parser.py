@@ -308,5 +308,5 @@ class Parser(object):
 			raise IOError(e)
 		except (KeyboardInterrupt, SystemExit):
 			raise
-		except Exception as e:
-			self.handler.print_error(path, e)
+		# except Exception as e:
+		# 	self.handler.print_error(path, e)
