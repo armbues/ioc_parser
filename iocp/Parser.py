@@ -268,7 +268,10 @@ class Parser(object):
 				elif re.match('<!--.*-->', unicode(elem)):
 					continue
 				else:
-					text += unicode(elem)
+					try :
+						text += unicode(elem)
+					# Handle 'bad' chars: 'ascii' codec can't encode character u
+					except :  continue
 
 			self.handler.print_header(fpath)
 			self.parse_page(fpath, text, 1)
