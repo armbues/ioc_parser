@@ -262,16 +262,17 @@ class Parser(object):
 			html = soup.findAll(text=True)
 
 			text = u''
-			for elem in html:
+			
+			try:
+				for elem in html:
 				if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
 					continue
 				elif re.match('<!--.*-->', unicode(elem)):
 					continue
 				else:
-					try :
-						text += unicode(elem)
-					# Handle 'bad' chars: 'ascii' codec can't encode character u
-					except :  continue
+					text += unicode(elem)
+			# Handle 'bad' chars: 'ascii' codec can't encode character u
+			except :  continue
 
 			self.handler.print_header(fpath)
 			self.parse_page(fpath, text, 1)
