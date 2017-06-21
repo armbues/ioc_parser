@@ -36,14 +36,15 @@
 ###################################################################################################
 
 import os
-import sys
 import fnmatch
 import glob
 import re
+
 try:
-	import configparser as ConfigParser
+    import configparser as ConfigParser
 except ImportError:
-	import ConfigParser
+    import ConfigParser
+
 try:
     from StringIO import StringIO
 except ImportError:
@@ -51,258 +52,272 @@ except ImportError:
 
 # Import optional third-party libraries
 IMPORTS = []
+
 try:
-	from PyPDF2 import PdfFileReader
-	IMPORTS.append('pypdf2')
+    from PyPDF2 import PdfFileReader
+    IMPORTS.append('pypdf2')
 except ImportError:
-	pass
+    pass
+
 try:
-	from pdfminer.pdfpage import PDFPage
-	from pdfminer.pdfinterp import PDFResourceManager
-	from pdfminer.converter import TextConverter
-	from pdfminer.pdfinterp import PDFPageInterpreter
-	from pdfminer.layout import LAParams
-	IMPORTS.append('pdfminer')
+    from pdfminer.pdfpage import PDFPage
+    from pdfminer.pdfinterp import PDFResourceManager
+    from pdfminer.converter import TextConverter
+    from pdfminer.pdfinterp import PDFPageInterpreter
+    from pdfminer.layout import LAParams
+    IMPORTS.append('pdfminer')
 except ImportError:
-	pass
+    pass
+
 try:
-	from bs4 import BeautifulSoup
-	IMPORTS.append('beautifulsoup')
+    from bs4 import BeautifulSoup
+    IMPORTS.append('beautifulsoup')
 except ImportError:
-	pass
+    pass
+
 try:
-	import requests
-	IMPORTS.append('requests')
+    import requests
+    IMPORTS.append('requests')
 except ImportError:
-	pass
+    pass
 
 # Import project source files
 import iocp
 from iocp import Output
 
+
 class Parser(object):
-	patterns = {}
-	defang = {}
+    patterns = {}
+    defang = {}
 
-	def __init__(self, patterns_ini=None, input_format='pdf', dedup=False, library='pdfminer', output_format='csv', output_handler=None):
-		basedir = iocp.get_basedir()
+    def __init__(self, patterns_ini = None, input_format = 'pdf', dedup = False, library = 'pdfminer', output_format = 'csv', output_handler = None):
+        basedir = iocp.get_basedir()
 
-		if patterns_ini is None:
-			patterns_ini = os.path.join(basedir, 'data/patterns.ini')
-		self.load_patterns(patterns_ini)
+        if patterns_ini is None:
+            patterns_ini = os.path.join(basedir, 'data/patterns.ini')
 
-		wldir = os.path.join(basedir, 'data/whitelists')
-		self.whitelist = self.load_whitelists(wldir)
+        self.load_patterns(patterns_ini)
 
-		self.dedup = dedup
-		if output_handler:
-			self.handler = output_handler
-		else:
-			self.handler = Output.getHandler(output_format)
+        wldir = os.path.join(basedir, 'data/whitelists')
+        self.whitelist = self.load_whitelists(wldir)
 
-		self.ext_filter = "*." + input_format
-		parser_format = "parse_" + input_format
-		try:
-			self.parser_func = getattr(self, parser_format)
-		except AttributeError:
-			e = 'Selected parser format is not supported: %s' % (input_format)
-			raise NotImplementedError(e)
+        self.dedup = dedup
 
-		self.library = library
-		if input_format == 'pdf':
-			if library not in IMPORTS:
-				e = 'Selected PDF parser library not found: %s' % (library)
-				raise ImportError(e)
-		elif input_format == 'html':
-			if 'beautifulsoup' not in IMPORTS:
-				e = 'HTML parser library not found: BeautifulSoup'
-				raise ImportError(e)
+        if output_handler:
+            self.handler = output_handler
+        else:
+            self.handler = Output.getHandler(output_format)
 
-	def load_patterns(self, fpath):
-		config = ConfigParser.ConfigParser()
-		with open(fpath) as f:
-			config.readfp(f)
+        self.ext_filter = "*." + input_format
+        parser_format = "parse_" + input_format
+        try:
+            self.parser_func = getattr(self, parser_format)
+        except AttributeError:
+            e = 'Selected parser format is not supported: %s' % (input_format)
+            raise NotImplementedError(e)
 
-		for ind_type in config.sections():
-			try:
-				ind_pattern = config.get(ind_type, 'pattern')
-			except:
-				continue
+        self.library = library
 
-			if ind_pattern:
-				ind_regex = re.compile(ind_pattern)
-				self.patterns[ind_type] = ind_regex
+        if input_format == 'pdf':
+            if library not in IMPORTS:
+                e = 'Selected PDF parser library not found: %s' % (library)
+                raise ImportError(e)
+            elif input_format == 'html':
+                if 'beautifulsoup' not in IMPORTS:
+                    e = 'HTML parser library not found: BeautifulSoup'
+                    raise ImportError(e)
 
-			try:
-				ind_defang = config.get(ind_type, 'defang')
-			except:
-				continue
+    def load_patterns(self, fpath):
+        config = ConfigParser.ConfigParser()
+        with open(fpath) as f:
+            config.readfp(f)
 
-			if ind_defang:
-				self.defang[ind_type] = True
+        for ind_type in config.sections():
+            try:
+                ind_pattern = config.get(ind_type, 'pattern')
+            except:
+                continue
 
-	def load_whitelists(self, fpath):
-		whitelist = {}
+            if ind_pattern:
+                ind_regex = re.compile(ind_pattern)
+                self.patterns[ind_type] = ind_regex
 
-		searchdir = os.path.join(fpath, "whitelist_*.ini")
-		fpaths = glob.glob(searchdir)
-		for fpath in fpaths:
-			t = os.path.splitext(os.path.split(fpath)[1])[0].split('_',1)[1]
-			patterns = [line.strip() for line in open(fpath)]
-			whitelist[t]  = [re.compile(p) for p in patterns]
+            try:
+                ind_defang = config.get(ind_type, 'defang')
+            except:
+                continue
 
-		return whitelist
+            if ind_defang:
+                self.defang[ind_type] = True
 
-	def is_whitelisted(self, ind_match, ind_type):
-		try:
-			for w in self.whitelist[ind_type]:
-				if w.findall(ind_match):
-					return True
-		except KeyError as e:
-			pass
-		return False
+    def load_whitelists(self, fpath):
+        whitelist = {}
 
-	def parse_page(self, fpath, data, page_num):
-		for ind_type, ind_regex in self.patterns.items():
-			matches = ind_regex.findall(data)
+        searchdir = os.path.join(fpath, "whitelist_*.ini")
+        fpaths = glob.glob(searchdir)
+        for fpath in fpaths:
+            t = os.path.splitext(os.path.split(fpath)[1])[0].split('_', 1)[1]
+            patterns = [line.strip() for line in open(fpath)]
+            whitelist[t] = [re.compile(p) for p in patterns]
 
-			for ind_match in matches:
-				if isinstance(ind_match, tuple):
-					ind_match = ind_match[0]
+        return whitelist
 
-				if self.is_whitelisted(ind_match, ind_type):
-					continue
+    def is_whitelisted(self, ind_match, ind_type):
+        try:
+            for w in self.whitelist[ind_type]:
+                if w.findall(ind_match):
+                    return True
+        except KeyError:
+            pass
 
-				if ind_type in self.defang:
-					ind_match = re.sub(r'\[\.\]', '.', ind_match)
+        return False
 
-				if self.dedup:
-					if (ind_type, ind_match) in self.dedup_store:
-						continue
+    def parse_page(self, fpath, data, page_num):
+        for ind_type, ind_regex in self.patterns.items():
+            matches = ind_regex.findall(data)
 
-					self.dedup_store.add((ind_type, ind_match))
+            for ind_match in matches:
+                if isinstance(ind_match, tuple):
+                    ind_match = ind_match[0]
 
-				self.handler.print_match(fpath, page_num, ind_type, ind_match)
+                if self.is_whitelisted(ind_match, ind_type):
+                    continue
 
-	def parse_pdf_pypdf2(self, f, fpath):
-		try:
-			pdf = PdfFileReader(f, strict = False)
+                if ind_type in self.defang:
+                    ind_match = re.sub(r'\[\.\]', '.', ind_match)
 
-			if self.dedup:
-				self.dedup_store = set()
+                if self.dedup:
+                    if (ind_type, ind_match) in self.dedup_store:
+                        continue
 
-			self.handler.print_header(fpath)
-			page_num = 0
-			for page in pdf.pages:
-				page_num += 1
+                    self.dedup_store.add((ind_type, ind_match))
 
-				data = page.extractText()
+                self.handler.print_match(fpath, page_num, ind_type, ind_match)
 
-				self.parse_page(fpath, data, page_num)
-			self.handler.print_footer(fpath)
-		except (KeyboardInterrupt, SystemExit):
-			raise
+    def parse_pdf_pypdf2(self, f, fpath):
+        try:
+            pdf = PdfFileReader(f, strict = False)
 
-	def parse_pdf_pdfminer(self, f, fpath):
-		try:
-			laparams = LAParams()
-			laparams.all_texts = True  
-			rsrcmgr = PDFResourceManager()
-			pagenos = set()
+            if self.dedup:
+                self.dedup_store = set()
 
-			if self.dedup:
-				self.dedup_store = set()
+            self.handler.print_header(fpath)
+            page_num = 0
+            for page in pdf.pages:
+                page_num += 1
 
-			self.handler.print_header(fpath)
-			page_num = 0
-			for page in PDFPage.get_pages(f, pagenos, check_extractable=True):
-				page_num += 1
+                data = page.extractText()
 
-				retstr = StringIO()
-				device = TextConverter(rsrcmgr, retstr, codec='utf-8', laparams=laparams)
-				interpreter = PDFPageInterpreter(rsrcmgr, device)
-				interpreter.process_page(page)
-				data = retstr.getvalue()
-				retstr.close()
+                self.parse_page(fpath, data, page_num)
 
-				self.parse_page(fpath, data, page_num)
-			self.handler.print_footer(fpath)
-		except (KeyboardInterrupt, SystemExit):
-			raise
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
 
-	def parse_pdf(self, f, fpath):
-		parser_format = "parse_pdf_" + self.library
-		try:
-			self.parser_func = getattr(self, parser_format)
-		except AttributeError:
-			e = 'Selected PDF parser library is not supported: %s' % (self.library)
-			raise NotImplementedError(e)
-			
-		self.parser_func(f, fpath)
+    def parse_pdf_pdfminer(self, f, fpath):
+        try:
+            laparams = LAParams()
+            laparams.all_texts = True
+            rsrcmgr = PDFResourceManager()
+            pagenos = set()
 
-	def parse_txt(self, f, fpath):
-		try:
-			if self.dedup:
-				self.dedup_store = set()
+            if self.dedup:
+                self.dedup_store = set()
 
-			data = f.read()
-			self.handler.print_header(fpath)
-			self.parse_page(fpath, data, 1)
-			self.handler.print_footer(fpath)
-		except (KeyboardInterrupt, SystemExit):
-			raise
+            self.handler.print_header(fpath)
+            page_num = 0
 
-	def parse_html(self, f, fpath):
-		try:
-			if self.dedup:
-				self.dedup_store = set()
-				
-			data = f.read()
-			soup = BeautifulSoup(data)
-			html = soup.findAll(text=True)
+            for page in PDFPage.get_pages(f, pagenos, check_extractable=True):
+                page_num += 1
 
-			text = u''
-			for elem in html:
-				if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
-					continue
-				elif re.match('<!--.*-->', unicode(elem)):
-					continue
-				else:
-					text += unicode(elem)
+                retstr = StringIO()
+                device = TextConverter(rsrcmgr, retstr, codec='utf-8', laparams=laparams)
+                interpreter = PDFPageInterpreter(rsrcmgr, device)
+                interpreter.process_page(page)
+                data = retstr.getvalue()
+                retstr.close()
 
-			self.handler.print_header(fpath)
-			self.parse_page(fpath, text, 1)
-			self.handler.print_footer(fpath)
-		except (KeyboardInterrupt, SystemExit):
-			raise
+                self.parse_page(fpath, data, page_num)
 
-	def parse(self, path):
-		try:
-			if path.startswith('http://') or path.startswith('https://'):
-				if 'requests' not in IMPORTS:
-					e = 'HTTP library not found: requests'
-					raise ImportError(e)
-				headers = { 'User-Agent': 'Mozilla/5.0 Gecko Firefox' }
-				r = requests.get(path, headers=headers)
-				r.raise_for_status()
-				f = StringIO(r.content)
-				self.parser_func(f, path)
-				return
-			elif os.path.isfile(path):
-				with open(path, 'rb') as f:
-					self.parser_func(f, path)
-				return
-			elif os.path.isdir(path):
-				for walk_root, walk_dirs, walk_files in os.walk(path):
-					for walk_file in fnmatch.filter(walk_files, self.ext_filter):
-						fpath = os.path.join(walk_root, walk_file)
-						with open(fpath, 'rb') as f:
-							self.parser_func(f, fpath)
-				return
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
 
-			e = 'File path is not a file, directory or URL: %s' % (path)
-			raise IOError(e)
-		except (KeyboardInterrupt, SystemExit):
-			raise
-		except Exception as e:
-			self.handler.print_error(path, e)
+    def parse_pdf(self, f, fpath):
+        parser_format = "parse_pdf_" + self.library
+
+        try:
+            self.parser_func = getattr(self, parser_format)
+        except AttributeError:
+            e = 'Selected PDF parser library is not supported: %s' % (self.library)
+            raise NotImplementedError(e)
+
+        self.parser_func(f, fpath)
+
+    def parse_txt(self, f, fpath):
+        try:
+            if self.dedup:
+                self.dedup_store = set()
+
+            data = f.read()
+            self.handler.print_header(fpath)
+            self.parse_page(fpath, data, 1)
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+
+    def parse_html(self, f, fpath):
+        try:
+            if self.dedup:
+                self.dedup_store = set()
+
+            data = f.read()
+            soup = BeautifulSoup(data)
+            html = soup.findAll(text = True)
+
+            text = u''
+            for elem in html:
+                if elem.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+                    continue
+                elif re.match('<!--.*-->', unicode(elem)):
+                    continue
+                else:
+                    text += unicode(elem)
+
+            self.handler.print_header(fpath)
+            self.parse_page(fpath, text, 1)
+            self.handler.print_footer(fpath)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+
+    def parse(self, path):
+        try:
+            if path.startswith('http://') or path.startswith('https://'):
+                if 'requests' not in IMPORTS:
+                    e = 'HTTP library not found: requests'
+                    raise ImportError(e)
+
+                headers = {'User-Agent': 'Mozilla/5.0 Gecko Firefox'}
+                r = requests.get(path, headers = headers)
+                r.raise_for_status()
+                f = StringIO(r.content)
+                self.parser_func(f, path)
+                return
+            elif os.path.isfile(path):
+                with open(path, 'rb') as f:
+                    self.parser_func(f, path)
+                return
+            elif os.path.isdir(path):
+                for walk_root, walk_dirs, walk_files in os.walk(path):
+                    for walk_file in fnmatch.filter(walk_files, self.ext_filter):
+                        fpath = os.path.join(walk_root, walk_file)
+                        with open(fpath, 'rb') as f:
+                            self.parser_func(f, fpath)
+            return
+
+            e = 'File path is not a file, directory or URL: %s' % (path)
+            raise IOError(e)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            self.handler.print_error(path, e)
