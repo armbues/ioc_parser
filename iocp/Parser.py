@@ -143,7 +143,7 @@ class Parser(object):
                 continue
 
             if ind_pattern:
-                ind_regex = re.compile(ind_pattern)
+                ind_regex = re.compile(ind_pattern, flags = re.IGNORECASE)
                 self.patterns[ind_type] = ind_regex
 
             try:
