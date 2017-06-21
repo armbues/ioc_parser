@@ -35,6 +35,7 @@
 #
 ###################################################################################################
 
+import sys
 import os
 import fnmatch
 import glob
@@ -80,47 +81,58 @@ from iocp import Output
 
 class Parser(object):
     patterns = {}
-    defang = {}
+    defang   = {}
 
     def __init__(self, patterns_ini = None, input_format = 'pdf', dedup = False, library = 'pdfminer', output_format = 'csv', output_handler = None):
-        basedir = iocp.get_basedir()
+        self.__init_patterns(patterns_ini)
+        self.__init_whitelist()
+        self.__init_dedup(dedup)
+        self.__init_output_handler(output_format, output_handler)
+        self.__init_parser(input_format)
+        self.__init_library(library, input_format)
 
+    def __init_patterns(self, patterns_ini):
         if patterns_ini is None:
-            patterns_ini = os.path.join(basedir, 'data/patterns.ini')
+            patterns_ini = os.path.join(iocp.get_basedir(), 'data/patterns.ini')
 
         self.load_patterns(patterns_ini)
 
-        wldir = os.path.join(basedir, 'data/whitelists')
+    def __init_whitelist(self):
+        wldir = os.path.join(iocp.get_basedir(), 'data/whitelists')
         self.whitelist = self.load_whitelists(wldir)
 
+    def __init_dedup(self, dedup):
         self.dedup = dedup
 
-        if output_handler:
-            self.handler = output_handler
-        else:
-            self.handler = Output.getHandler(output_format)
+        if dedup:
+            self.dedup_store = set()
 
-        self.ext_filter = "*." + input_format
-        parser_format = "parse_" + input_format
-        try:
-            self.parser_func = getattr(self, parser_format)
-        except AttributeError:
-            e = 'Selected parser format is not supported: %s' % (input_format)
-            raise NotImplementedError(e)
+    def __init_output_handler(self, output_format, output_handler):
+        self.handler = output_handler if output_handler else Output.getHandler(output_format)
 
+    def __init_parser(self, input_format):
+        self.ext_filter = "*.{}".format(input_format)
+        parser_format = "parse_{}".format(input_format)
+
+        self.parser_func = getattr(self, parser_format, None)
+        if not self.parser_func:
+            print('Selected parser format is not supported: {}'.format(input_format))
+            sys.exit(-1)
+
+    def __init_library(self, library, input_format):
         self.library = library
 
-        if input_format == 'pdf':
-            if library not in IMPORTS:
-                e = 'Selected PDF parser library not found: %s' % (library)
-                raise ImportError(e)
-            elif input_format == 'html':
-                if 'beautifulsoup' not in IMPORTS:
-                    e = 'HTML parser library not found: BeautifulSoup'
-                    raise ImportError(e)
+        if input_format in ('pdf', ) and library not in IMPORTS:
+            print('PDF parser library not found: {}'.format(library))
+            sys.exit(-1)
+
+        if input_format in ('html', ) and 'beautifulsoup' not in IMPORTS:
+            print('HTML parser library not found: BeautifulSoup')
+            sys.exit(-1)
 
     def load_patterns(self, fpath):
         config = ConfigParser.ConfigParser()
+
         with open(fpath) as f:
             config.readfp(f)
 
@@ -190,9 +202,6 @@ class Parser(object):
         try:
             pdf = PdfFileReader(f, strict = False)
 
-            if self.dedup:
-                self.dedup_store = set()
-
             self.handler.print_header(fpath)
             page_num = 0
             for page in pdf.pages:
@@ -212,9 +221,6 @@ class Parser(object):
             laparams.all_texts = True
             rsrcmgr = PDFResourceManager()
             pagenos = set()
-
-            if self.dedup:
-                self.dedup_store = set()
 
             self.handler.print_header(fpath)
             page_num = 0
@@ -238,19 +244,15 @@ class Parser(object):
     def parse_pdf(self, f, fpath):
         parser_format = "parse_pdf_" + self.library
 
-        try:
-            self.parser_func = getattr(self, parser_format)
-        except AttributeError:
-            e = 'Selected PDF parser library is not supported: %s' % (self.library)
+        self.parser_func = getattr(self, parser_format, None)
+        if not self.parser_func:
+            e = 'Selected PDF parser library is not supported: {}'.format(self.library)
             raise NotImplementedError(e)
 
         self.parser_func(f, fpath)
 
     def parse_txt(self, f, fpath):
         try:
-            if self.dedup:
-                self.dedup_store = set()
-
             data = f.read()
             self.handler.print_header(fpath)
             self.parse_page(fpath, data, 1)
@@ -260,9 +262,6 @@ class Parser(object):
 
     def parse_html(self, f, fpath):
         try:
-            if self.dedup:
-                self.dedup_store = set()
-
             data = f.read()
             soup = BeautifulSoup(data)
             html = soup.findAll(text = True)
@@ -295,17 +294,17 @@ class Parser(object):
                 f = StringIO(r.content)
                 self.parser_func(f, path)
                 return
-            elif os.path.isfile(path):
+            if os.path.isfile(path):
                 with open(path, 'rb') as f:
                     self.parser_func(f, path)
                 return
-            elif os.path.isdir(path):
+            if os.path.isdir(path):
                 for walk_root, walk_dirs, walk_files in os.walk(path):
                     for walk_file in fnmatch.filter(walk_files, self.ext_filter):
                         fpath = os.path.join(walk_root, walk_file)
                         with open(fpath, 'rb') as f:
                             self.parser_func(f, fpath)
-            return
+                return
 
             e = 'File path is not a file, directory or URL: %s' % (path)
             raise IOError(e)
