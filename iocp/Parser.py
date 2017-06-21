@@ -139,7 +139,7 @@ class Parser(object):
         for ind_type in config.sections():
             try:
                 ind_pattern = config.get(ind_type, 'pattern')
-            except:
+            except ConfigParser.NoOptionError:
                 continue
 
             if ind_pattern:
@@ -148,7 +148,7 @@ class Parser(object):
 
             try:
                 ind_defang = config.get(ind_type, 'defang')
-            except:
+            except ConfigParser.NoOptionError:
                 continue
 
             if ind_defang:
