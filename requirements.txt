@@ -2,5 +2,8 @@ beautifulsoup4>=4.4.1
 pdfminer>=20140328
 PyPDF2>=1.26.0
 requests>=2.10.0
+<<<<<<< HEAD
 six>=1.10.0
 lxml>=3.8.0
+=======
+>>>>>>> b87758680aca377a019ee3185566bc05145e0117
