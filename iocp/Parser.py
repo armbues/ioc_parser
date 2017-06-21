@@ -39,16 +39,8 @@ import os
 import fnmatch
 import glob
 import re
-
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
-
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+import six.moves.configparser as ConfigParser
+from six import StringIO
 
 # Import optional third-party libraries
 IMPORTS = []
