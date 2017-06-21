@@ -263,7 +263,7 @@ class Parser(object):
     def parse_html(self, f, fpath):
         try:
             data = f.read()
-            soup = BeautifulSoup(data)
+            soup = BeautifulSoup(data, "lxml")
             html = soup.findAll(text = True)
 
             text = u''
