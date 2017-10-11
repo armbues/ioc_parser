@@ -75,6 +75,11 @@ try:
 	IMPORTS.append('requests')
 except ImportError:
 	pass
+try:
+	import docx2txt
+	IMPORTS.append('docx2txt')
+except ImportError:
+	pass
 
 # Import project source files
 import iocp
@@ -269,6 +274,19 @@ class Parser(object):
 					continue
 				else:
 					text += unicode(elem)
+
+			self.handler.print_header(fpath)
+			self.parse_page(fpath, text, 1)
+			self.handler.print_footer(fpath)
+		except (KeyboardInterrupt, SystemExit):
+			raise
+
+	def parse_docx(self, f, fpath):
+		try:
+			text = docx2txt.process(f)
+
+			if self.dedup:
+				self.dedup_store = set()
 
 			self.handler.print_header(fpath)
 			self.parse_page(fpath, text, 1)
