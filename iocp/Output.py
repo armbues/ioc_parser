@@ -114,7 +114,7 @@ class OutputHandler_yara(OutputHandler):
 
 class OutputHandler_netflow(OutputHandler):
     def __init__(self):
-        print "host 255.255.255.255"
+        print("host 255.255.255.255")
 
     def print_match(self, fpath, page, name, match):
         data = {
@@ -123,4 +123,4 @@ class OutputHandler_netflow(OutputHandler):
         }
 
         if data["type"] == "IP":
-            print " or host %s " % data["match"]
+            print(" or host %s " % data["match"])
